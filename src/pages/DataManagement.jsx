@@ -237,7 +237,7 @@ export default function DataManagement() {
     setDownloading(true)
     try {
       const data = await getCurrentSubmission()
-      exportCurrentToExcel(data)
+      await exportCurrentToExcel(data)
     } catch (err) {
       setError(err.message || 'Failed to download.')
     } finally {
