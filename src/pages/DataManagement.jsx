@@ -360,70 +360,189 @@ export default function DataManagement() {
     )
   }
 
-  // ------------------ Main List ------------------
-  return (
-    <div className="page-content">
-      <div className="page-header">
-        <h2 className="page-heading">Data Management</h2>
-        <div className="page-actions">
-          <input
-            type="text"
-            placeholder="Filter by name, email, or contact…"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            className="input-search"
-          />
-          <button type="button" onClick={() => navigate('/add')} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-            <IconPlus /> Add new record
-          </button>
-          <button type="button" onClick={handleDownload} disabled={downloading} className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-            <IconDownload /> {downloading ? 'Preparing…' : 'Download data'}
-          </button>
-        </div>
+// ------------------ Main List ------------------
+return (
+  <div className="page-content">
+    <div className="page-header">
+      <h2 className="page-heading">Data Management</h2>
+      <div className="page-actions">
+        <input
+          type="text"
+          placeholder="Filter by name, email, or contact…"
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          className="input-search"
+        />
+
+        <button
+          type="button"
+          onClick={() => navigate('/add')}
+          className="btn btn-primary"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
+        >
+          <IconPlus /> Add new record
+        </button>
+
+        <button
+          type="button"
+          onClick={handleDownload}
+          disabled={downloading}
+          className="btn btn-secondary"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
+        >
+          <IconDownload /> {downloading ? 'Preparing…' : 'Download data'}
+        </button>
       </div>
-
-      {/* Section Toggle */}
-      <div className="section-toggle" style={{ marginBottom: 16 }}>
-        <button type="button" className={`btn ${activeSection === 'client' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setActiveSection('client')}>Client Information</button>
-        <button type="button" className={`btn ${activeSection === 'policy' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setActiveSection('policy')} style={{ marginLeft: 8 }}>Issued Policy Details</button>
-      </div>
-
-      {activeSection === 'client' ? (
-        filteredClients.length === 0 ? <p className="text-muted">No clients found.</p> :
-          <div className="grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '16px' }}>
-            {filteredClients.map((client, i) => (
-              <div key={filteredClientIndices[i]} role="button" tabIndex={0} onClick={() => setSelectedClientIndex(i)} onKeyDown={(e) => e.key === 'Enter' && setSelectedClientIndex(i)} className="card client-card" style={{ cursor: 'pointer' }}>
-                <div className="client-card-name">{client.col_1 || '—'}</div>
-                <div className="client-card-meta">
-                  {client.col_7 && `Email: ${client.col_7}`}
-                  {client.col_7 && client.col_8 && ' · '}
-                  {client.col_8 && `Contact: ${client.col_8}`}
-                </div>
-              </div>
-            ))}
-          </div>
-      ) : (
-        filteredPolicies.length === 0 ? <p className="text-muted">No policies found.</p> :
-          <div className="grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '16px' }}>
-            {filteredPolicies.map((policy, i) => {
-              const clientName = clientInfo.find(c =>
-                (policy.col_1 && c.col_1 === policy.col_1) || (policy.col_2 && c.col_1 === policy.col_2)
-              )?.col_1 || '—'
-
-              return (
-                <div key={i} role="button" tabIndex={0} onClick={() => setSelectedPolicyIndex(i)} onKeyDown={(e) => e.key === 'Enter' && setSelectedPolicyIndex(i)} className="card policy-card" style={{ cursor: 'pointer' }}>
-                  <div className="policy-card-client">Client: {clientName}</div>
-                  {policyCols.slice(0, 3).map(col => (
-                    <div key={col.data} className="policy-field">
-                      <span className="policy-label">{col.title}</span>
-                      <span className="policy-value">{policy[col.data] || '—'}</span>
-                    </div>
-                  ))}
-                </div>
-              )
-            })}
-          </div>
-      )}
     </div>
-  )
+
+    {/* Section Toggle */}
+    <div className="section-toggle" style={{ marginBottom: 16 }}>
+      <button
+        type="button"
+        className={`btn ${
+          activeSection === 'client' ? 'btn-primary' : 'btn-ghost'
+        }`}
+        onClick={() => setActiveSection('client')}
+      >
+        Client Information
+      </button>
+
+      <button
+        type="button"
+        className={`btn ${
+          activeSection === 'policy' ? 'btn-primary' : 'btn-ghost'
+        }`}
+        onClick={() => setActiveSection('policy')}
+        style={{ marginLeft: 8 }}
+      >
+        Issued Policy Details
+      </button>
+    </div>
+
+    {/* ================= CLIENT CARDS ================= */}
+    {activeSection === 'client' ? (
+      filteredClients.length === 0 ? (
+        <p className="text-muted">No clients found.</p>
+      ) : (
+        <div
+          className="grid"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4,1fr)',
+            gap: '16px',
+          }}
+        >
+          {filteredClients.map((client, i) => (
+            <div
+              key={filteredClientIndices[i]}
+              role="button"
+              tabIndex={0}
+              onClick={() => setSelectedClientIndex(i)}
+              onKeyDown={(e) =>
+                e.key === 'Enter' && setSelectedClientIndex(i)
+              }
+              className="card client-card"
+              style={{ cursor: 'pointer', padding: 16 }}
+            >
+              {/* Full Name */}
+              <div style={{ fontWeight: 'bold', fontSize: '1.25rem' }}>
+                {client.col_1 || '—'}
+              </div>
+
+              {/* Status */}
+              <div style={{ marginTop: 6, color: '#555' }}>
+                {client.col_2 || '—'}
+              </div>
+            </div>
+          ))}
+        </div>
+      )
+    ) : filteredPolicies.length === 0 ? (
+      <p className="text-muted">No policies found.</p>
+    ) : (
+      /* ================= POLICY CARDS ================= */
+      <div
+        className="grid"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4,1fr)',
+          gap: '16px',
+        }}
+      >
+        {filteredPolicies.map((policy, i) => {
+          const insuredName = policy.col_2 || '—' // insured name
+          const insuranceLine = policy.col_5 || '—'
+          const policyNumber = policy.col_3 || '—'
+          const status = policy.col_9 || '—'
+          const provider = policy.col_4 || '—'
+
+          return (
+            <div
+              key={i}
+              role="button"
+              tabIndex={0}
+              onClick={() => setSelectedPolicyIndex(i)}
+              onKeyDown={(e) =>
+                e.key === 'Enter' && setSelectedPolicyIndex(i)
+              }
+              className="card policy-card"
+              style={{
+                cursor: 'pointer',
+                padding: 16,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 0,
+                minHeight: 160,
+              }}
+            >
+              {/* Insurance Line (BOLD) */}
+              <div
+                style={{
+                  fontWeight: 'bold',
+                  fontSize: '1.1rem',
+                  marginBottom: 0,
+                }}
+              >
+                {insuranceLine}
+              </div>
+
+              {/* Policy Number */}
+              <div style={{ color: '#444' }}>
+                {policyNumber}
+              </div>
+
+              {/* Insured Name (BOLD) */}
+              <div
+                style={{
+                  fontWeight: 'bold',
+                  fontSize: '1.5rem',
+                  marginTop: 12,
+                  marginBottom: 0,
+                }}
+              >
+                {insuredName}
+              </div>
+
+              {/* Status */}
+              <div style={{ color: '#555', marginBottom: 16, }}>
+                {status}
+              </div>
+
+              {/* Provider (Bottom) */}
+              <div
+                style={{
+                  marginTop: 'auto',
+                  color: '#666',
+                  fontSize: '0.9rem',
+                }}
+              >
+                {provider} 
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    )}
+  </div>
+)
 }
