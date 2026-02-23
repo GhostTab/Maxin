@@ -7,6 +7,7 @@ export default function Login() {
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -84,24 +85,44 @@ export default function Login() {
           </p>
         </div>
   
-        {/* RIGHT SIDE - LOGIN FORM (NOW GRADIENT) */}
+        {/* RIGHT SIDE - IMAGE BG + BLUR LAYER + GLASS CARD */}
         <div
+          className="login-right-column"
           style={{
+            position: 'relative',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             padding: 40,
-            background:
-              'linear-gradient(160deg, #1a365d 0%, #2c5282 40%, #2b6cb0 100%)',
+            backgroundImage: 'url(/login-bg.jpg)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
           }}
         >
+          {/* Blur overlay layer */}
           <div
             style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'rgba(26, 53, 93, 0.55)',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+            }}
+          />
+          {/* Glassy login card */}
+          <div
+            style={{
+              position: 'relative',
+              zIndex: 1,
               width: '100%',
-              maxWidth: 480,
-              padding: 40,
-              borderRadius: 16,
-
+              maxWidth: 440,
+              padding: '40px 36px',
+              borderRadius: 20,
+              background: 'rgba(255, 255, 255, 0.08)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255, 255, 255, 0.18)',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
             }}
           >
             <h2
@@ -179,25 +200,64 @@ export default function Login() {
                 Password
               </label>
   
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                autoComplete="current-password"
+              <div
                 style={{
-                  width: '100%',
-                  padding: '12px 14px',
-                  borderRadius: 8,
-                  border: '1px solid rgba(255,255,255,0.25)',
+                  position: 'relative',
                   marginTop: 0,
                   marginBottom: 16,
-                  fontSize: 16,
-                  outline: 'none',
-                  background: 'rgba(255,255,255,0.1)',
-                  color: '#ffffff',
                 }}
-              />
+              >
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                  style={{
+                    width: '100%',
+                    padding: '12px 44px 12px 14px',
+                    borderRadius: 8,
+                    border: '1px solid rgba(255,255,255,0.25)',
+                    margin: 0,
+                    fontSize: 16,
+                    outline: 'none',
+                    background: 'rgba(255,255,255,0.1)',
+                    color: '#ffffff',
+                    boxSizing: 'border-box',
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  style={{
+                    position: 'absolute',
+                    right: 10,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    padding: 6,
+                    cursor: 'pointer',
+                    color: 'rgba(255,255,255,0.7)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {showPassword ? (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                      <line x1="1" y1="1" x2="23" y2="23" />
+                    </svg>
+                  ) : (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  )}
+                </button>
+              </div>
   
                   <button
                     type="submit"
@@ -216,6 +276,9 @@ export default function Login() {
           @media (max-width: 900px) {
             div[style*="grid-template-columns"] {
               grid-template-columns: 1fr !important;
+            }
+            .login-right-column {
+              min-height: 60vh;
             }
           }
         `}
