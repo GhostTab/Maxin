@@ -84,7 +84,49 @@ body {
   gap: 10px;
   align-items: center;
 }
-
+/* Sidebar nav & logout */
+.sidebar-nav-link {
+  display: block;
+  color: var(--sidebar-text);
+  text-decoration: none;
+  padding: 12px 20px;
+  border-radius: var(--radius-md);
+  font-size: 15px;
+  opacity: 0.88;
+  font-weight: 400;
+  background: transparent;
+  margin: 0 12px;
+  transition: background 0.2s ease, opacity 0.2s ease;
+}
+.sidebar-nav-link:hover {
+  background: rgba(255, 255, 255, 0.08);
+  opacity: 1;
+}
+.sidebar-nav-link.active {
+  background: var(--sidebar-active);
+  font-weight: 600;
+  opacity: 1;
+}
+.sidebar-nav-link.active:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+.sidebar-logout-btn {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: 14px;  
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: var(--maxin-white);
+  color: var(--maxin-dark);
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+.sidebar-logout-btn:hover {
+  background: var(--maxin-dark);
+  color: var(--maxin-white);
+  border-color: #ffffff;
+}
 /* Cards */
 .card {
   background: var(--card-bg);
@@ -218,6 +260,33 @@ body {
 
 .btn-ghost:hover:not(:disabled) {
   background: rgba(0, 0, 0, 0.04);
+}
+
+.login-btn {
+  width: 100%;
+  padding: 14px;
+  border-radius: 12px;
+  border: none;
+  background: #ffffff; /* start as white */
+  color: #1a365d;      /* primary text color */
+  font-weight: 700;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.25s ease, color 0.25s ease;
+  border: 1px solid rgb(255, 255, 255);
+  
+}
+
+.login-btn:hover {
+  background: #1a365d; /* primary background on hover */
+  color: #ffffff;      /* text becomes white */
+  
+  border-color: #ffffff;
+}
+
+.login-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
 /* Inputs */

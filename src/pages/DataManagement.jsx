@@ -10,6 +10,29 @@ import { FormSection } from '../components/RecordForm'
 const clientCols = SPREADSHEET_COLUMNS.Client_Info
 const policyCols = SPREADSHEET_COLUMNS.Policy_Info
 
+const TABS = [
+  { id: 'client', label: 'Client Information' },
+  { id: 'policy', label: 'Policy Information' },
+]
+
+function IconPlus({ size = 18 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  )
+}
+function IconDownload({ size = 18 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="7 10 12 15 17 10" />
+      <line x1="12" y1="15" x2="12" y2="3" />
+    </svg>
+  )
+}
+
 function isUploadUrl(value) {
   return typeof value === 'string' && (value.startsWith('http://') || value.startsWith('https://'))
 }
@@ -99,6 +122,7 @@ function EditClientView({
   onSave,
   onCancel,
 }) {
+  const [activeTab, setActiveTab] = useState('client')
   const [clientValues, setClientValues] = useState(() => ({ ...client }))
   const [policyValues, setPolicyValues] = useState(() => policies.map((p) => ({ ...p })))
   const [clientFiles, setClientFiles] = useState({})
@@ -172,27 +196,55 @@ function EditClientView({
       <h2 className="page-heading">Edit client & policies</h2>
       {error && <div className="alert alert-error">{error}</div>}
       <form onSubmit={handleSubmit}>
-        <FormSection
-          title="Client info"
-          columns={clientCols}
-          values={clientValues}
-          onChange={setClient}
-          uploadFieldKeys={UPLOAD_FIELD_KEYS.Client_Info}
-          files={clientFiles}
-          onFileChange={setClientFile}
-        />
-        {policies.map((policy, j) => (
-          <FormSection
-            key={j}
-            title={`Policy ${j + 1}`}
-            columns={policyCols}
-            values={policyValues[j] || {}}
-            onChange={(key, value) => setPolicyAt(j, key, value)}
-            uploadFieldKeys={UPLOAD_FIELD_KEYS.Policy_Info}
-            files={policyFiles[j] || {}}
-            onFileChange={(key, file) => setPolicyFileAt(j, key, file)}
-          />
-        ))}
+        <div className="add-record-tabs">
+          {TABS.map(({ id, label }) => (
+            <button
+              key={id}
+              type="button"
+              className={`add-record-tab ${activeTab === id ? 'active' : ''}`}
+              onClick={() => setActiveTab(id)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <div className="add-record-panels">
+          <div
+            className={`add-record-panel ${activeTab === 'client' ? 'active' : ''}`}
+            aria-hidden={activeTab !== 'client'}
+          >
+            <FormSection
+              title="Client Information"
+              columns={clientCols}
+              values={clientValues}
+              onChange={setClient}
+              uploadFieldKeys={UPLOAD_FIELD_KEYS.Client_Info}
+              files={clientFiles}
+              onFileChange={setClientFile}
+            />
+          </div>
+          <div
+            className={`add-record-panel ${activeTab === 'policy' ? 'active' : ''}`}
+            aria-hidden={activeTab !== 'policy'}
+          >
+            {policies.length === 0 ? (
+              <p className="text-muted">No policies linked to this client.</p>
+            ) : (
+              policies.map((policy, j) => (
+                <FormSection
+                  key={j}
+                  title={`Policy ${j + 1}`}
+                  columns={policyCols}
+                  values={policyValues[j] || {}}
+                  onChange={(key, value) => setPolicyAt(j, key, value)}
+                  uploadFieldKeys={UPLOAD_FIELD_KEYS.Policy_Info}
+                  files={policyFiles[j] || {}}
+                  onFileChange={(key, file) => setPolicyFileAt(j, key, file)}
+                />
+              ))
+            )}
+          </div>
+        </div>
         <div className="form-actions">
           <button type="submit" disabled={submitting} className="btn btn-primary">
             {submitting ? 'Saving…' : 'Save changes'}
@@ -237,7 +289,7 @@ export default function DataManagement() {
     setDownloading(true)
     try {
       const data = await getCurrentSubmission()
-      await exportCurrentToExcel(data)
+      exportCurrentToExcel(data)
     } catch (err) {
       setError(err.message || 'Failed to download.')
     } finally {
@@ -354,7 +406,8 @@ export default function DataManagement() {
             onChange={(e) => setFilter(e.target.value)}
             className="input-search"
           />
-          <button type="button" onClick={() => navigate('/add')} className="btn btn-primary">
+          <button type="button" onClick={() => navigate('/add')} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            <IconPlus />
             Add new record
           </button>
           <button
@@ -362,7 +415,9 @@ export default function DataManagement() {
             onClick={handleDownload}
             disabled={downloading}
             className="btn btn-secondary"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
           >
+            <IconDownload />
             {downloading ? 'Preparing…' : 'Download data'}
           </button>
         </div>
@@ -373,7 +428,14 @@ export default function DataManagement() {
           <p className="text-muted">No clients yet. Add a record to get started.</p>
         </div>
       ) : (
-        <div className="client-list">
+        <div
+          className="client-list"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)', // 4 columns
+            gap: '16px', // space between cards
+          }}
+        >
           {filteredClients.map((client, i) => (
             <div
               key={filteredIndices[i]}
@@ -382,6 +444,9 @@ export default function DataManagement() {
               onClick={() => setSelectedIndex(i)}
               onKeyDown={(e) => e.key === 'Enter' && setSelectedIndex(i)}
               className="card client-card"
+              style={{
+                cursor: 'pointer',
+              }}
             >
               <div className="client-card-name">{client.col_1 || '—'}</div>
               <div className="client-card-meta">

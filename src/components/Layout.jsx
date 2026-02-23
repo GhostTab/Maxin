@@ -16,19 +16,8 @@ export default function Layout() {
     navigate('/login')
   }
 
-  const navLinkStyle = ({ isActive }) => ({
-    display: 'block',
-    color: 'var(--sidebar-text)',
-    textDecoration: 'none',
-    padding: '12px 20px',
-    borderRadius: 'var(--radius-md)',
-    fontSize: 15,
-    opacity: isActive ? 1 : 0.88,
-    fontWeight: isActive ? 600 : 400,
-    background: isActive ? 'var(--sidebar-active)' : 'transparent',
-    margin: '0 12px',
-    transition: 'background 0.15s, opacity 0.15s',
-  })
+  const navLinkClassName = ({ isActive }) =>
+    `sidebar-nav-link${isActive ? ' active' : ''}`
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'row' }}>
@@ -46,30 +35,39 @@ export default function Layout() {
       >
         <NavLink
           to="/data"
-          style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none', color: 'inherit', padding: '0 24px 24px', marginBottom: 8, borderBottom: '1px solid rgba(255,255,255,0.12)' }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            textDecoration: 'none',
+            color: 'inherit',
+            padding: '0 24px 24px',
+            marginBottom: 8,
+            borderBottom: '1px solid rgba(255,255,255,0.12)',
+          }}
         >
           {logoError ? (
             <span style={{ fontWeight: 700, fontSize: 17 }}>MAXIN Insurance</span>
           ) : (
-            <>
-              <img
-                src="/logo.png"
-                alt="MAXIN"
-                onError={() => setLogoError(true)}
-                style={{ height: 40, display: 'block', objectFit: 'contain' }}
-              />
-              <span style={{ fontWeight: 600, fontSize: 16 }}>Insurance</span>
-            </>
+            <img
+              src="/Maxinlogo.png" // replace with your actual logo path if needed
+              alt="MAXIN Logo"
+              onError={() => setLogoError(true)}
+              style={{ height: 40, display: 'block', objectFit: 'contain' }}
+            />
           )}
         </NavLink>
         <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <NavLink to="/add" style={navLinkStyle}>
+          <NavLink to="/add" className={navLinkClassName}>
             Add record
           </NavLink>
-          <NavLink to="/data" style={navLinkStyle}>
+          <NavLink to="/sheet" className={navLinkClassName}>
+            Spreadsheet
+          </NavLink>
+          <NavLink to="/data" className={navLinkClassName}>
             Data management
           </NavLink>
-          <NavLink to="/submissions" style={navLinkStyle}>
+          <NavLink to="/submissions" className={navLinkClassName}>
             Version history
           </NavLink>
         </nav>
@@ -77,17 +75,7 @@ export default function Layout() {
           <button
             type="button"
             onClick={handleLogout}
-            style={{
-              width: '100%',
-              background: 'transparent',
-              color: 'var(--sidebar-text)',
-              border: '1px solid rgba(255,255,255,0.3)',
-              padding: '12px 16px',
-              borderRadius: 'var(--radius-md)',
-              cursor: 'pointer',
-              fontSize: 14,
-              fontWeight: 500,
-            }}
+            className="sidebar-logout-btn"
           >
             Logout
           </button>
