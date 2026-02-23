@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import logo from '../assets/Maxin logo.png'
 
@@ -109,11 +109,24 @@ export default function Login() {
               WebkitBackdropFilter: 'blur(12px)',
             }}
           />
-          {/* Glassy login card */}
+          {/* Smooth transition: white from left column fades into right (very subtle) */}
+          <div
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: 'min(40px, 4%)',
+              background: 'linear-gradient(to right, #ffffff 0%, rgba(255,255,255,0.35) 45%, transparent 100%)',
+              pointerEvents: 'none',
+              zIndex: 1,
+            }}
+          />
+          {/* Glassy login card - centered in right column */}
           <div
             style={{
               position: 'relative',
-              zIndex: 1,
+              zIndex: 2,
               width: '100%',
               maxWidth: 440,
               padding: '40px 36px',
@@ -258,6 +271,15 @@ export default function Login() {
                   )}
                 </button>
               </div>
+  
+              <p style={{ marginBottom: 16, marginTop: 0 }}>
+                <Link
+                  to="/forgot-password"
+                  style={{ color: 'rgba(255,255,255,0.85)', fontSize: 14, textDecoration: 'underline' }}
+                >
+                  Forgot password?
+                </Link>
+              </p>
   
                   <button
                     type="submit"

@@ -24,6 +24,7 @@ Web-based data entry and management for MAXIN Insurance: client info, policy inf
 3. In **Authentication → Users**, create one admin user (email + password). No sign-up; only this user can log in.
 4. In **Storage**, create buckets `uploads` (or use the names in the schema) for KYC and policy file uploads.
 5. In **Project Settings → API**, copy **Project URL** and **anon public** key.
+6. For **Forgot password** to work: in **Authentication → URL Configuration**, add your app’s reset page to **Redirect URLs**, e.g. `http://localhost:5173/reset-password` and `https://your-domain.com/reset-password`.
 
 ### 2. App env
 

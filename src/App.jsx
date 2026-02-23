@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
 import { UnsavedProvider } from './context/UnsavedContext'
 import Login from './pages/Login'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 import Spreadsheet from './pages/Spreadsheet'
 import Submissions from './pages/Submissions'
 import AddRecord from './pages/AddRecord'
@@ -33,6 +35,8 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route
         path="/"
         element={
