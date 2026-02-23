@@ -1,5 +1,5 @@
 /**
- * Single-file mode: one current document, up to 5 previous versions for revert.
+ * Single-file mode: one current document, up to 5 previous versions (commit history).
  * Works with or without the is_current column (fallback uses "latest by submitted_at" as current).
  */
 
@@ -115,68 +115,6 @@ export async function getCurrentSubmission() {
   }
 }
 
-async function getHistoryWithSelect(supabaseClient, fields) {
-  if (useIsCurrentColumn !== false) {
-    const { data, error } = await supabaseClient
-      .from('submissions')
-      .select(fields)
-      .eq('is_current', false)
-      .order('submitted_at', { ascending: false })
-      .limit(MAX_HISTORY)
-    if (!error) return data || []
-    if (columnError(error)) useIsCurrentColumn = false
-    else throw error
-  }
-  const { data, error } = await supabaseClient
-    .from('submissions')
-    .select(fields)
-    .order('submitted_at', { ascending: false })
-    .limit(MAX_HISTORY + 1)
-  if (error) throw error
-  const list = data || []
-  return list.slice(1)
-}
-
-/** History using only minimal columns (no is_current, no message). */
-async function getHistoryMinimal(supabaseClient) {
-  const { data, error } = await supabaseClient
-    .from('submissions')
-    .select(MINIMAL_FIELDS)
-    .order('submitted_at', { ascending: false })
-    .limit(MAX_HISTORY + 1)
-  if (error) throw error
-  const list = data || []
-  return list.slice(1)
-}
-
-export async function getHistorySubmissions() {
-  if (useIsCurrentColumn === null && useMessageColumn === null) {
-    try {
-      const list = await getHistoryMinimal(supabase)
-      useIsCurrentColumn = false
-      return list
-    } catch (e) {
-      if (columnError(e)) throw new Error(TABLE_SETUP_MSG)
-      throw e
-    }
-  }
-  let fields = selectFields()
-  try {
-    return await getHistoryWithSelect(supabase, fields)
-  } catch (e) {
-    if (columnError(e) && useMessageColumn !== false) {
-      useMessageColumn = false
-      try {
-        return await getHistoryWithSelect(supabase, MINIMAL_FIELDS)
-      } catch (e2) {
-        throw new Error(TABLE_SETUP_MSG)
-      }
-    }
-    if (columnError(e)) throw new Error(TABLE_SETUP_MSG)
-    throw e
-  }
-}
-
 /** Save as the new current; keep only 5 history (oldest deleted when a new save is made). */
 export async function saveCurrent(supabaseClient, payload, commitMessage = null) {
   const basePayload = {
@@ -228,60 +166,4 @@ export async function saveCurrent(supabaseClient, payload, commitMessage = null)
     await supabaseClient.from('submissions').delete().eq('id', row.id)
   }
   return inserted
-}
-
-/** Revert to a previous version: that version becomes current. No new row is created; only is_current is swapped. Trim to 5 history so oldest is deleted only when we exceed 5. */
-export async function revertToVersion(supabaseClient, versionId) {
-  if (useIsCurrentColumn === true) {
-    const [{ data: oldCurrent }, { data: versionRow }] = await Promise.all([
-      supabaseClient.from('submissions').select('id').eq('is_current', true).maybeSingle(),
-      supabaseClient.from('submissions').select('id').eq('id', versionId).single(),
-    ])
-    if (!versionRow) throw new Error('Version not found')
-    if (versionRow.id === oldCurrent?.id) return
-
-    await supabaseClient.from('submissions').update({ is_current: false }).eq('is_current', true)
-    await supabaseClient.from('submissions').update({ is_current: true }).eq('id', versionId)
-
-    const { data: historyRows } = await supabaseClient
-      .from('submissions')
-      .select('id')
-      .eq('is_current', false)
-      .order('submitted_at', { ascending: true })
-    const excess = (historyRows || []).length - MAX_HISTORY
-    if (excess > 0) {
-      const toDelete = (historyRows || []).slice(0, excess)
-      for (const row of toDelete) {
-        await supabaseClient.from('submissions').delete().eq('id', row.id)
-      }
-    }
-    return
-  }
-
-  const fields = useMessageColumn !== false ? 'id, data, message' : 'id, data'
-  const { data: versionRow, error: versionErr } = await supabaseClient
-    .from('submissions')
-    .select(fields)
-    .eq('id', versionId)
-    .single()
-  if (versionErr || !versionRow) throw new Error('Version not found')
-
-  const revertPayload = {
-    submitted_at: new Date().toISOString(),
-    status: 'submitted',
-    data: versionRow.data,
-  }
-  if (useMessageColumn !== false) {
-    revertPayload.message = versionRow.message ? `Reverted: ${versionRow.message}` : 'Reverted'
-  }
-  await insertOne(supabaseClient, revertPayload)
-
-  const { data: allRows } = await supabaseClient
-    .from('submissions')
-    .select('id')
-    .order('submitted_at', { ascending: true })
-  const toDelete = (allRows || []).slice(0, Math.max(0, allRows.length - (MAX_HISTORY + 1)))
-  for (const row of toDelete) {
-    await supabaseClient.from('submissions').delete().eq('id', row.id)
-  }
 }

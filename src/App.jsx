@@ -6,7 +6,6 @@ import Login from './pages/Login'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import Spreadsheet from './pages/Spreadsheet'
-import Submissions from './pages/Submissions'
 import AddRecord from './pages/AddRecord'
 import DataManagement from './pages/DataManagement'
 import Layout from './components/Layout'
@@ -51,7 +50,6 @@ export default function App() {
         <Route path="sheet" element={<Spreadsheet />} />
         <Route path="add" element={<AddRecord />} />
         <Route path="data" element={<DataManagement />} />
-        <Route path="submissions" element={<Submissions />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

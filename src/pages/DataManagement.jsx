@@ -34,6 +34,17 @@ function IconDownload({ size = 18 }) {
   )
 }
 
+function IconTrash({ size = 18 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <polyline points="3 6 5 6 21 6" />
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+      <line x1="10" y1="11" x2="10" y2="17" />
+      <line x1="14" y1="11" x2="14" y2="17" />
+    </svg>
+  )
+}
+
 function isUploadUrl(value) {
   return typeof value === 'string' && (value.startsWith('http://') || value.startsWith('https://'))
 }
@@ -251,6 +262,9 @@ export default function DataManagement() {
   const [editing, setEditing] = useState(false)
   const [downloading, setDownloading] = useState(false)
   const [activeSection, setActiveSection] = useState('client') // client or policy
+  const [selectedClientIndices, setSelectedClientIndices] = useState(() => new Set())
+  const [selectedPolicyIndices, setSelectedPolicyIndices] = useState(() => new Set())
+  const [deleting, setDeleting] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -284,26 +298,143 @@ export default function DataManagement() {
   const clientInfo = current?.data?.client_info ?? []
   const policyInfo = current?.data?.policy_info ?? []
 
+  const toggleClientSelection = (realIndex) => {
+    setSelectedClientIndices((prev) => {
+      const next = new Set(prev)
+      if (next.has(realIndex)) next.delete(realIndex)
+      else next.add(realIndex)
+      return next
+    })
+  }
+
+  const togglePolicySelection = (realIndex) => {
+    setSelectedPolicyIndices((prev) => {
+      const next = new Set(prev)
+      if (next.has(realIndex)) next.delete(realIndex)
+      else next.add(realIndex)
+      return next
+    })
+  }
+
+  const deleteClientsAndLinkedPolicies = async (clientIndicesToDelete) => {
+    const namesToRemove = new Set(
+      clientInfo.filter((_, i) => clientIndicesToDelete.has(i)).map((c) => (c.col_1 || '').trim()).filter(Boolean)
+    )
+    const newClientInfo = clientInfo.filter((_, i) => !clientIndicesToDelete.has(i))
+    const newPolicyInfo = policyInfo.filter((p) => {
+      const name1 = (p.col_1 || '').trim()
+      const name2 = (p.col_2 || '').trim()
+      const linkedToDeleted = (name1 && namesToRemove.has(name1)) || (name2 && namesToRemove.has(name2))
+      return !linkedToDeleted
+    })
+    await saveCurrent(supabase, { client_info: newClientInfo, policy_info: newPolicyInfo }, 'Deleted client(s)')
+  }
+
+  const handleDeleteOneClient = async (realIndex) => {
+    if (!window.confirm('Are you sure you want to delete this client? This will also remove their linked policies.')) return
+    setDeleting(true)
+    setError('')
+    try {
+      await deleteClientsAndLinkedPolicies(new Set([realIndex]))
+      setSelectedClientIndices((prev) => {
+        const next = new Set(prev)
+        next.delete(realIndex)
+        return next
+      })
+      await load()
+    } catch (err) {
+      setError(err.message || 'Failed to delete.')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const handleDeleteOnePolicy = async (realIndex) => {
+    if (!window.confirm('Are you sure you want to delete this policy?')) return
+    setDeleting(true)
+    setError('')
+    try {
+      const newPolicyInfo = policyInfo.filter((_, i) => i !== realIndex)
+      await saveCurrent(supabase, { client_info: clientInfo, policy_info: newPolicyInfo }, 'Deleted policy')
+      setSelectedPolicyIndices((prev) => {
+        const next = new Set(prev)
+        next.delete(realIndex)
+        return next
+      })
+      await load()
+    } catch (err) {
+      setError(err.message || 'Failed to delete.')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const handleDeleteSelectedClients = async () => {
+    if (selectedClientIndices.size === 0) return
+    if (!window.confirm(`Are you sure you want to delete ${selectedClientIndices.size} selected client(s)? This will also remove their linked policies.`)) return
+    setDeleting(true)
+    setError('')
+    try {
+      await deleteClientsAndLinkedPolicies(selectedClientIndices)
+      setSelectedClientIndices(new Set())
+      await load()
+    } catch (err) {
+      setError(err.message || 'Failed to delete.')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const handleDeleteSelectedPolicies = async () => {
+    if (selectedPolicyIndices.size === 0) return
+    if (!window.confirm(`Are you sure you want to delete ${selectedPolicyIndices.size} selected policy(ies)?`)) return
+    setDeleting(true)
+    setError('')
+    try {
+      const newPolicyInfo = policyInfo.filter((_, i) => !selectedPolicyIndices.has(i))
+      await saveCurrent(supabase, { client_info: clientInfo, policy_info: newPolicyInfo }, 'Deleted selected policies')
+      setSelectedPolicyIndices(new Set())
+      await load()
+    } catch (err) {
+      setError(err.message || 'Failed to delete.')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   const filterLower = filter.trim().toLowerCase()
-  const filteredClients = filterLower
-    ? clientInfo.filter(c =>
+  let filteredClients, filteredClientIndices
+  if (filterLower) {
+    filteredClientIndices = []
+    filteredClients = clientInfo.filter((c, idx) => {
+      const match =
         (c.col_1 && c.col_1.toLowerCase().includes(filterLower)) ||
         (c.col_7 && c.col_7.toLowerCase().includes(filterLower)) ||
         (c.col_8 && c.col_8.toLowerCase().includes(filterLower))
-      )
-    : clientInfo
-  const filteredPolicies = filterLower
-    ? policyInfo.filter(p => {
-        const clientName = clientInfo.find(c =>
-          (p.col_1 && c.col_1 === p.col_1) ||
-          (p.col_2 && c.col_1 === p.col_2)
-        )?.col_1 || ''
-        return clientName.toLowerCase().includes(filterLower)
-      })
-    : policyInfo
+      if (match) filteredClientIndices.push(idx)
+      return match
+    })
+  } else {
+    filteredClients = clientInfo
+    filteredClientIndices = clientInfo.map((_, i) => i)
+  }
 
-  const filteredClientIndices = filteredClients.map((_, i) => i)
-  const filteredPolicyIndices = filteredPolicies.map((_, i) => i)
+  let filteredPolicies, filteredPolicyIndices
+  if (filterLower) {
+    filteredPolicyIndices = []
+    filteredPolicies = policyInfo.filter((p, idx) => {
+      const clientName = clientInfo.find(c =>
+        (p.col_1 && c.col_1 === p.col_1) ||
+        (p.col_2 && c.col_1 === p.col_2)
+      )?.col_1 || ''
+      const match = clientName.toLowerCase().includes(filterLower)
+      if (match) filteredPolicyIndices.push(idx)
+      return match
+    })
+  } else {
+    filteredPolicies = policyInfo
+    filteredPolicyIndices = policyInfo.map((_, i) => i)
+  }
 
   // ------------------ Editing / Detail Views ------------------
   if (editing && selectedClientIndex != null && filteredClients[selectedClientIndex]) {
@@ -363,6 +494,11 @@ export default function DataManagement() {
 // ------------------ Main List ------------------
 return (
   <div className="page-content">
+    {error && (
+      <div className="alert alert-error" style={{ marginBottom: 16 }}>
+        {error}
+      </div>
+    )}
     <div className="page-header">
       <h2 className="page-heading">Data Management</h2>
       <div className="page-actions">
@@ -392,6 +528,43 @@ return (
         >
           <IconDownload /> {downloading ? 'Preparing…' : 'Download data'}
         </button>
+
+        {activeSection === 'client' && selectedClientIndices.size > 0 && (
+          <button
+            type="button"
+            onClick={handleDeleteSelectedClients}
+            disabled={deleting}
+            className="btn"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              background: '#b91c1c',
+              color: '#fff',
+              border: 'none',
+            }}
+          >
+            <IconTrash size={16} /> Delete selected ({selectedClientIndices.size})
+          </button>
+        )}
+        {activeSection === 'policy' && selectedPolicyIndices.size > 0 && (
+          <button
+            type="button"
+            onClick={handleDeleteSelectedPolicies}
+            disabled={deleting}
+            className="btn"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              background: '#b91c1c',
+              color: '#fff',
+              border: 'none',
+            }}
+          >
+            <IconTrash size={16} /> Delete selected ({selectedPolicyIndices.size})
+          </button>
+        )}
       </div>
     </div>
 
@@ -402,7 +575,10 @@ return (
         className={`btn ${
           activeSection === 'client' ? 'btn-primary' : 'btn-ghost'
         }`}
-        onClick={() => setActiveSection('client')}
+        onClick={() => {
+          setActiveSection('client')
+          setSelectedPolicyIndices(new Set())
+        }}
       >
         Client Information
       </button>
@@ -412,7 +588,10 @@ return (
         className={`btn ${
           activeSection === 'policy' ? 'btn-primary' : 'btn-ghost'
         }`}
-        onClick={() => setActiveSection('policy')}
+        onClick={() => {
+          setActiveSection('policy')
+          setSelectedClientIndices(new Set())
+        }}
         style={{ marginLeft: 8 }}
       >
         Issued Policy Details
@@ -432,29 +611,86 @@ return (
             gap: '16px',
           }}
         >
-          {filteredClients.map((client, i) => (
-            <div
-              key={filteredClientIndices[i]}
-              role="button"
-              tabIndex={0}
-              onClick={() => setSelectedClientIndex(i)}
-              onKeyDown={(e) =>
-                e.key === 'Enter' && setSelectedClientIndex(i)
-              }
-              className="card client-card"
-              style={{ cursor: 'pointer', padding: 16 }}
-            >
-              {/* Full Name */}
-              <div style={{ fontWeight: 'bold', fontSize: '1.25rem' }}>
-                {client.col_1 || '—'}
-              </div>
+          {filteredClients.map((client, i) => {
+            const realIndex = filteredClientIndices[i]
+            const isSelected = selectedClientIndices.has(realIndex)
+            return (
+              <div
+                key={realIndex}
+                role="button"
+                tabIndex={0}
+                onClick={() => setSelectedClientIndex(i)}
+                onKeyDown={(e) =>
+                  e.key === 'Enter' && setSelectedClientIndex(i)
+                }
+                className="card client-card"
+                style={{
+                  cursor: 'pointer',
+                  padding: 16,
+                  position: 'relative',
+                  outline: isSelected ? '2px solid var(--maxin-light)' : undefined,
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={isSelected}
+                  onChange={() => toggleClientSelection(realIndex)}
+                  onClick={(e) => e.stopPropagation()}
+                  aria-label={`Select ${client.col_1 || 'client'}`}
+                  style={{
+                    position: 'absolute',
+                    left: 12,
+                    top: 12,
+                    width: 18,
+                    height: 18,
+                    cursor: 'pointer',
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleDeleteOneClient(realIndex)
+                  }}
+                  disabled={deleting}
+                  aria-label="Delete client"
+                  style={{
+                    position: 'absolute',
+                    right: 12,
+                    top: 12,
+                    padding: 4,
+                    border: 'none',
+                    background: 'transparent',
+                    color: '#6b7280',
+                    cursor: deleting ? 'not-allowed' : 'pointer',
+                    borderRadius: 4,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = '#b91c1c'
+                    e.currentTarget.style.background = '#fef2f2'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = '#6b7280'
+                    e.currentTarget.style.background = 'transparent'
+                  }}
+                >
+                  <IconTrash size={18} />
+                </button>
+                {/* Full Name */}
+                <div style={{ fontWeight: 'bold', fontSize: '1.25rem', paddingLeft: 28, paddingRight: 36 }}>
+                  {client.col_1 || '—'}
+                </div>
 
-              {/* Status */}
-              <div style={{ marginTop: 6, color: '#555' }}>
-                {client.col_2 || '—'}
+                {/* Status */}
+                <div style={{ marginTop: 6, color: '#555' }}>
+                  {client.col_2 || '—'}
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )
     ) : filteredPolicies.length === 0 ? (
@@ -470,6 +706,8 @@ return (
         }}
       >
         {filteredPolicies.map((policy, i) => {
+          const realIndex = filteredPolicyIndices[i]
+          const isSelected = selectedPolicyIndices.has(realIndex)
           const insuredName = policy.col_2 || '—' // insured name
           const insuranceLine = policy.col_5 || '—'
           const policyNumber = policy.col_3 || '—'
@@ -478,7 +716,7 @@ return (
 
           return (
             <div
-              key={i}
+              key={realIndex}
               role="button"
               tabIndex={0}
               onClick={() => setSelectedPolicyIndex(i)}
@@ -493,14 +731,68 @@ return (
                 flexDirection: 'column',
                 gap: 0,
                 minHeight: 160,
+                position: 'relative',
+                outline: isSelected ? '2px solid var(--maxin-light)' : undefined,
               }}
             >
+              <input
+                type="checkbox"
+                checked={isSelected}
+                onChange={() => togglePolicySelection(realIndex)}
+                onClick={(e) => e.stopPropagation()}
+                aria-label={`Select policy ${policyNumber}`}
+                style={{
+                  position: 'absolute',
+                  left: 12,
+                  top: 12,
+                  width: 18,
+                  height: 18,
+                  cursor: 'pointer',
+                  zIndex: 1,
+                }}
+              />
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleDeleteOnePolicy(realIndex)
+                }}
+                disabled={deleting}
+                aria-label="Delete policy"
+                style={{
+                  position: 'absolute',
+                  right: 12,
+                  top: 12,
+                  padding: 4,
+                  border: 'none',
+                  background: 'transparent',
+                  color: '#6b7280',
+                  cursor: deleting ? 'not-allowed' : 'pointer',
+                  borderRadius: 4,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 1,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = '#b91c1c'
+                  e.currentTarget.style.background = '#fef2f2'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = '#6b7280'
+                  e.currentTarget.style.background = 'transparent'
+                }}
+              >
+                <IconTrash size={18} />
+              </button>
               {/* Insurance Line (BOLD) */}
               <div
                 style={{
                   fontWeight: 'bold',
                   fontSize: '1.1rem',
                   marginBottom: 0,
+                  paddingLeft: 28,
+                  paddingRight: 36,
                 }}
               >
                 {insuranceLine}
@@ -536,7 +828,7 @@ return (
                   fontSize: '0.9rem',
                 }}
               >
-                {provider} 
+                {provider}
               </div>
             </div>
           )

@@ -1,6 +1,6 @@
 # MAXIN Insurance Data System
 
-Web-based data entry and management for MAXIN Insurance: client info, policy info, version history, and Excel export. Built with React (Vite), Supabase (auth + database), and Handsontable for spreadsheet-style editing.
+Web-based data entry and management for MAXIN Insurance: client info, policy info, and Excel export. Built with React (Vite), Supabase (auth + database), and Handsontable for read-only spreadsheet view.
 
 ---
 
@@ -57,12 +57,11 @@ This section is for the frontend dev enhancing the UI. Backend (Supabase), auth,
 ### What’s already there
 
 - **Auth:** Login page; protected routes; logout from sidebar.
-- **Sidebar layout:** Left nav (Add record, Data management, Version history); main content on the right.
+- **Sidebar layout:** Left nav (Add record, Spreadsheet, Data management); main content on the right.
 - **Pages:**
   - **Add record** – Form for one client + one policy; validation (all fields required); submit adds to current submission.
   - **Data management** – List of clients (from current submission); click a client → detail view; **Edit** opens edit form for that client and their policies; save updates the current submission.
-  - **Version history** – List of current + previous saves; “Revert” restores a version as current.
-  - **Spreadsheet** – Handsontable tabs (Client Info / Policy Info); save loads/saves current submission.
+  - **Spreadsheet** – Handsontable tabs (Client Info / Policy Info); read-only view of current submission.
 - **Design:** CSS variables in `src/index.css` (colors, radii, shadows, sidebar). Reusable classes: `.page-content`, `.page-heading`, `.card`, `.btn`, `.btn-primary`, `.btn-ghost`, `.alert`, `.form-actions`, etc.
 
 ### Repo structure (what to touch)
@@ -81,15 +80,14 @@ src/
 │   └── UnsavedContext.jsx      # Tracks unsaved changes (e.g. spreadsheet)
 ├── lib/
 │   ├── supabase.js    # Supabase client (uses .env)
-│   ├── submissions.js # getCurrentSubmission, saveCurrent, revertToVersion
+│   ├── submissions.js # getCurrentSubmission, saveCurrent
 │   ├── exportExcel.js # Download current data as .xlsx
 │   └── upload.js      # File upload to Supabase Storage
 └── pages/
     ├── Login.jsx
     ├── AddRecord.jsx
     ├── DataManagement.jsx   # List, client detail, edit client
-    ├── Submissions.jsx      # Version history
-    └── Spreadsheet.jsx      # Handsontable
+    └── Spreadsheet.jsx      # Handsontable (read-only)
 ```
 
 - **Styling:** Prefer editing `src/index.css` and using existing classes. Layout and pages use a mix of those classes and inline `style` where needed; you can replace inline styles with classes or a CSS-in-JS approach if you prefer.
@@ -128,7 +126,6 @@ Your frontend partner can use a shared Supabase project or their own for local w
 - Responsive sidebar (e.g. collapse on small screens, hamburger menu).
 - Improve forms: better error messages, inline validation, accessibility (labels, focus, ARIA).
 - Data management: table view, sorting, pagination, or better empty states.
-- Version history: clearer diff or preview before revert.
 - Theming: dark mode or alternate palette using the same CSS variables.
 - Replace or reduce inline `style` with a small design system (e.g. more classes or a UI library that fits the tokens).
 

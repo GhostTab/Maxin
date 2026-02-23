@@ -67,9 +67,6 @@ export default function Layout() {
           <NavLink to="/data" className={navLinkClassName}>
             Data management
           </NavLink>
-          <NavLink to="/submissions" className={navLinkClassName}>
-            Version history
-          </NavLink>
         </nav>
         <div style={{ padding: '16px 24px', borderTop: '1px solid rgba(255,255,255,0.12)' }}>
           <button
