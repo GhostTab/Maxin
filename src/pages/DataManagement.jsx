@@ -512,11 +512,19 @@ return (
 
         <button
           type="button"
-          onClick={() => navigate('/add')}
+          onClick={() => navigate('/add/client')}
           className="btn btn-primary"
           style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
         >
-          <IconPlus /> Add new record
+          <IconPlus /> Add client
+        </button>
+        <button
+          type="button"
+          onClick={() => navigate('/add/policy')}
+          className="btn btn-ghost"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 8, border: '1px solid var(--maxin-light)' }}
+        >
+          <IconPlus /> Add policy
         </button>
 
         <button

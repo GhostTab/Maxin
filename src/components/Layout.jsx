@@ -58,8 +58,11 @@ export default function Layout() {
           )}
         </NavLink>
         <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <NavLink to="/add" className={navLinkClassName}>
-            Add record
+          <NavLink to="/add/client" className={navLinkClassName}>
+            Add client
+          </NavLink>
+          <NavLink to="/add/policy" className={navLinkClassName}>
+            Add policy
           </NavLink>
           <NavLink to="/sheet" className={navLinkClassName}>
             Spreadsheet

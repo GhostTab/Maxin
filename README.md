@@ -57,9 +57,10 @@ This section is for the frontend dev enhancing the UI. Backend (Supabase), auth,
 ### What’s already there
 
 - **Auth:** Login page; protected routes; logout from sidebar.
-- **Sidebar layout:** Left nav (Add record, Spreadsheet, Data management); main content on the right.
+- **Sidebar layout:** Left nav (Add client, Add policy, Spreadsheet, Data management); main content on the right.
 - **Pages:**
-  - **Add record** – Form for one client + one policy; validation (all fields required); submit adds to current submission.
+  - **Add client** – Add a client only (no policy required). All client fields required.
+  - **Add policy** – Add a policy linked to an existing client. Requires at least one client; select client from dropdown, then fill policy fields.
   - **Data management** – List of clients (from current submission); click a client → detail view; **Edit** opens edit form for that client and their policies; save updates the current submission.
   - **Spreadsheet** – Handsontable tabs (Client Info / Policy Info); read-only view of current submission.
 - **Design:** CSS variables in `src/index.css` (colors, radii, shadows, sidebar). Reusable classes: `.page-content`, `.page-heading`, `.card`, `.btn`, `.btn-primary`, `.btn-ghost`, `.alert`, `.form-actions`, etc.
@@ -85,7 +86,8 @@ src/
 │   └── upload.js      # File upload to Supabase Storage
 └── pages/
     ├── Login.jsx
-    ├── AddRecord.jsx
+    ├── AddClient.jsx        # Add client only
+    ├── AddPolicy.jsx        # Add policy (linked to selected client)
     ├── DataManagement.jsx   # List, client detail, edit client
     └── Spreadsheet.jsx      # Handsontable (read-only)
 ```
