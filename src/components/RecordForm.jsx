@@ -70,12 +70,13 @@ export function FormSection({ title, columns, values, onChange, uploadFieldKeys 
               ) : (
                 <input
                   type={col.inputType || 'text'}
-                  style={inputStyle}
+                  style={{ ...inputStyle, ...(col.readOnly ? { backgroundColor: 'var(--input-readonly-bg, #f1f5f9)', cursor: 'default' } : {}) }}
                   value={values[col.data] ?? ''}
                   onChange={(e) => onChange(col.data, e.target.value)}
                   placeholder={col.inputType === 'date' ? 'Select date' : undefined}
                   min={col.inputType === 'number' ? '0' : undefined}
                   step={col.inputType === 'number' ? 'any' : undefined}
+                  readOnly={col.readOnly}
                 />
               )}
             </div>

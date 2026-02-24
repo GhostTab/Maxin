@@ -20,6 +20,21 @@ export const NATIONALITY_OPTIONS = [
   'Egyptian', 'Kenyan', 'Ghanaian', 'Other',
 ]
 
+/** MAXIN providers for Policy Provider dropdown (select). */
+export const PROVIDER_OPTIONS = [
+  'AXA',
+  'ATR FAMi',
+  'Pioneer Your Insurance',
+  'BETHEL-general insurance and surety corporation',
+  'MALAYAN INSURANCE',
+  'BPI MS INSURANCE',
+  'STRONGHOLD-insurance company, incorporated',
+  'Prudential Guarantee- Insuring growth',
+  'Intellicare',
+  'Maxicare',
+  'MediCard-precribe by doctors',
+]
+
 /** HTML input type for form fields: date (calendar), email, tel, number, or text. */
 export const SPREADSHEET_COLUMNS = {
   Client_Info: [
@@ -45,7 +60,7 @@ export const SPREADSHEET_COLUMNS = {
     { data: 'col_1', title: 'Full Name', type: 'text' },
     { data: 'col_2', title: 'Insured Name', type: 'text' },
     { data: 'col_3', title: 'Policy No', type: 'text' },
-    { data: 'col_4', title: 'Provider', type: 'text' },
+    { data: 'col_4', title: 'Provider', type: 'text', inputType: 'select', options: PROVIDER_OPTIONS },
     { data: 'col_5', title: 'Line', type: 'text' },
     { data: 'col_6', title: 'Issued Date', type: 'text', inputType: 'date' },
     { data: 'col_7', title: 'Inception Date', type: 'text', inputType: 'date' },
@@ -58,7 +73,7 @@ export const SPREADSHEET_COLUMNS = {
     { data: 'col_14', title: 'Withholding Tax', type: 'text', inputType: 'number' },
     { data: 'col_15', title: 'VAT', type: 'text', inputType: 'number' },
     { data: 'col_16', title: 'Discount', type: 'text', inputType: 'number' },
-    { data: 'col_17', title: 'Net commision', type: 'text', inputType: 'number' },
+    { data: 'col_17', title: 'Net commision', type: 'text', inputType: 'number', readOnly: true },
     { data: 'col_18', title: 'Upload Policy Copy', type: 'text' },
   ],
 }

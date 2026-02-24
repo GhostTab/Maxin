@@ -29,6 +29,8 @@ CREATE POLICY "Only admin can access submissions"
   WITH CHECK ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
 -- Storage bucket for uploads (KYC, Policy copies). Only admin can upload/list; bucket stays public so file links work.
+-- For large files: In Dashboard → Storage → Configuration, increase "File size limit" per bucket if needed (e.g. 100MB+).
+-- Supabase standard uploads support up to 5GB; resumable (TUS) uploads support up to 50GB for very large files.
 INSERT INTO storage.buckets (id, name, public)
   VALUES ('uploads', 'uploads', true)
   ON CONFLICT (id) DO UPDATE SET public = true;

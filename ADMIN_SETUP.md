@@ -49,3 +49,11 @@ Run the same `UPDATE auth.users ... WHERE email = '...'` for each new admin emai
 | Logged in, `app_metadata.role = 'admin'` | Yes (full access) |
 
 Data in `submissions`, `current_clients`, `current_policies`, and the uploads bucket is only available to admin users.
+
+---
+
+## Storage and large files
+
+- **Where files live:** KYC and policy documents are stored in Supabase Storage (bucket `uploads`). The database only stores the file **URL**, so it stays small and can handle many records.
+- **Large file limits:** In **Supabase → Storage → Configuration**, you can increase the **File size limit** for the `uploads` bucket (e.g. 100 MB or more) so users can upload large PDFs. Standard uploads support up to 5 GB per file.
+- **Downloading files:** In **Data Management**, open a client or policy and use **Download file** next to any uploaded document to save the actual file (PDF, etc.) with a clear name. The Excel export still contains links to those files; use the in-app download for the file itself.

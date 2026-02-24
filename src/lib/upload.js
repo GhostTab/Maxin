@@ -1,6 +1,10 @@
 /**
  * Upload a file to Supabase Storage. Returns the public URL for the stored file.
  * Bucket must exist and be public, or use a policy that allows read for authenticated users.
+ *
+ * Large files: Standard uploads support up to 5GB per file. For very large files or
+ * unreliable networks, Supabase supports resumable (TUS) uploads—see Supabase docs.
+ * Increase the bucket file size limit in Dashboard → Storage → Configuration if needed.
  */
 
 const BUCKET = 'uploads'
@@ -19,6 +23,7 @@ export async function uploadFile(supabaseClient, folder, file) {
   const { error } = await supabaseClient.storage.from(BUCKET).upload(path, file, {
     cacheControl: '3600',
     upsert: false,
+    contentType: file.type || undefined,
   })
   if (error) throw error
 

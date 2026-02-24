@@ -30,7 +30,29 @@ export default function AddPolicy() {
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(true)
 
-  const setPolicy = (key, value) => setPolicyValues((prev) => ({ ...prev, [key]: value }))
+  /** Net commission = ((Commission - Withholding Tax + VAT) - Discount) */
+  function calcNetCommission(vals) {
+    const n = (key) => {
+      const x = parseFloat(String((vals || {})[key] ?? '').replace(/,/g, ''))
+      return Number.isFinite(x) ? x : 0
+    }
+    const commission = n('col_13')
+    const withholdingTax = n('col_14')
+    const vat = n('col_15')
+    const discount = n('col_16')
+    return ((commission - withholdingTax + vat) - discount)
+  }
+
+  const setPolicy = (key, value) => {
+    setPolicyValues((prev) => {
+      const next = { ...prev, [key]: value }
+      if (['col_13', 'col_14', 'col_15', 'col_16'].includes(key)) {
+        const net = calcNetCommission(next)
+        next.col_17 = net.toFixed(2)
+      }
+      return next
+    })
+  }
   const setPolicyFile = (key, file) => setPolicyFiles((prev) => ({ ...prev, [key]: file }))
 
   useEffect(() => {

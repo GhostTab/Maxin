@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { getCurrentSubmission, saveCurrent } from '../lib/submissions'
 import { exportCurrentToExcel } from '../lib/exportExcel'
+import { downloadFile } from '../lib/downloadFile'
 import { uploadFile } from '../lib/upload'
 import { SPREADSHEET_COLUMNS, UPLOAD_FIELD_KEYS } from '../config/spreadsheetColumns'
 import { FormSection } from '../components/RecordForm'
@@ -49,6 +50,18 @@ function isUploadUrl(value) {
   return typeof value === 'string' && (value.startsWith('http://') || value.startsWith('https://'))
 }
 
+/** Safe filename segment: replace spaces and invalid chars with dash */
+function safeFilenameSegment(name) {
+  return (name || 'file').replace(/\s+/g, '-').replace(/[\/:*?"<>|]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'file'
+}
+
+function handleDownloadFile(url, suggestedName, onError) {
+  downloadFile(url, suggestedName).catch((err) => {
+    if (onError) onError(err.message)
+    else alert('Download failed: ' + (err.message || 'Unknown error'))
+  })
+}
+
 // ------------------------- CLIENT DETAIL -------------------------
 function ClientDetail({ client, policies, clientIndex, policyIndices, onBack, onEdit }) {
   const clientName = client?.col_1 || '—'
@@ -70,7 +83,17 @@ function ClientDetail({ client, policies, clientIndex, policyIndices, onBack, on
               <div key={col.data} className="detail-field">
                 <span className="detail-label">{col.title}</span>
                 {isUpload && isUploadUrl(val) ? (
-                  <a href={val} target="_blank" rel="noopener noreferrer" className="link-download">View / Download</a>
+                  <span className="detail-value" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                    <a href={val} target="_blank" rel="noopener noreferrer" className="link-download">View</a>
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      style={{ padding: '4px 10px', fontSize: 13 }}
+                      onClick={() => handleDownloadFile(val, `${safeFilenameSegment(clientName)}-KYC`)}
+                    >
+                      Download file
+                    </button>
+                  </span>
                 ) : <span className="detail-value">{val}</span>}
               </div>
             )
@@ -87,11 +110,22 @@ function ClientDetail({ client, policies, clientIndex, policyIndices, onBack, on
                 {policyCols.map(col => {
                   const val = policy[col.data] ?? '—'
                   const isUpload = UPLOAD_FIELD_KEYS.Policy_Info.includes(col.data)
+                  const policyNo = policy?.col_3 || clientName
                   return (
                     <div key={col.data} className="detail-field">
                       <span className="detail-label">{col.title}</span>
                       {isUpload && isUploadUrl(val) ? (
-                        <a href={val} target="_blank" rel="noopener noreferrer" className="link-download">View / Download</a>
+                        <span className="detail-value" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                          <a href={val} target="_blank" rel="noopener noreferrer" className="link-download">View</a>
+                          <button
+                            type="button"
+                            className="btn btn-ghost"
+                            style={{ padding: '4px 10px', fontSize: 13 }}
+                            onClick={() => handleDownloadFile(val, `${safeFilenameSegment(policyNo)}-PolicyCopy`)}
+                          >
+                            Download file
+                          </button>
+                        </span>
                       ) : <span className="detail-value">{val}</span>}
                     </div>
                   )
@@ -111,6 +145,7 @@ function PolicyDetail({ policy, clientInfo, onBack }) {
     (policy.col_1 && c.col_1 === policy.col_1) ||
     (policy.col_2 && c.col_1 === policy.col_2)
   )?.col_1 || '—'
+  const policyNo = policy?.col_3 || clientName
 
   return (
     <div className="page-content">
@@ -127,7 +162,17 @@ function PolicyDetail({ policy, clientInfo, onBack }) {
               <div key={col.data} className="detail-field">
                 <span className="detail-label">{col.title}</span>
                 {isUpload && isUploadUrl(val) ? (
-                  <a href={val} target="_blank" rel="noopener noreferrer" className="link-download">View / Download</a>
+                  <span className="detail-value" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                    <a href={val} target="_blank" rel="noopener noreferrer" className="link-download">View</a>
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      style={{ padding: '4px 10px', fontSize: 13 }}
+                      onClick={() => handleDownloadFile(val, `${safeFilenameSegment(policyNo)}-PolicyCopy`)}
+                    >
+                      Download file
+                    </button>
+                  </span>
                 ) : <span className="detail-value">{val}</span>}
               </div>
             )
