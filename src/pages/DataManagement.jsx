@@ -598,104 +598,155 @@ return (
       </button>
     </div>
 
-    {/* ================= CLIENT CARDS ================= */}
-    {activeSection === 'client' ? (
-      filteredClients.length === 0 ? (
-        <p className="text-muted">No clients found.</p>
-      ) : (
-        <div
-          className="grid"
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4,1fr)',
-            gap: '16px',
-          }}
-        >
-          {filteredClients.map((client, i) => {
-            const realIndex = filteredClientIndices[i]
-            const isSelected = selectedClientIndices.has(realIndex)
-            return (
-              <div
-                key={realIndex}
-                role="button"
-                tabIndex={0}
-                onClick={() => setSelectedClientIndex(i)}
-                onKeyDown={(e) =>
-                  e.key === 'Enter' && setSelectedClientIndex(i)
-                }
-                className="card client-card"
-                style={{
-                  cursor: 'pointer',
-                  padding: 16,
-                  position: 'relative',
-                  outline: isSelected ? '2px solid var(--maxin-light)' : undefined,
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={isSelected}
-                  onChange={() => toggleClientSelection(realIndex)}
-                  onClick={(e) => e.stopPropagation()}
-                  aria-label={`Select ${client.col_1 || 'client'}`}
-                  style={{
-                    position: 'absolute',
-                    left: 12,
-                    top: 12,
-                    width: 18,
-                    height: 18,
-                    cursor: 'pointer',
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleDeleteOneClient(realIndex)
-                  }}
-                  disabled={deleting}
-                  aria-label="Delete client"
-                  style={{
-                    position: 'absolute',
-                    right: 12,
-                    top: 12,
-                    padding: 4,
-                    border: 'none',
-                    background: 'transparent',
-                    color: '#6b7280',
-                    cursor: deleting ? 'not-allowed' : 'pointer',
-                    borderRadius: 4,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.color = '#b91c1c'
-                    e.currentTarget.style.background = '#fef2f2'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.color = '#6b7280'
-                    e.currentTarget.style.background = 'transparent'
-                  }}
-                >
-                  <IconTrash size={18} />
-                </button>
-                {/* Full Name */}
-                <div style={{ fontWeight: 'bold', fontSize: '1.25rem', paddingLeft: 28, paddingRight: 36 }}>
-                  {client.col_1 || '—'}
-                </div>
+ {/* ================= CLIENT CARDS ================= */}
+{activeSection === 'client' ? (
+  filteredClients.length === 0 ? (
+    <p className="text-muted">No clients found.</p>
+  ) : (
+    <div
+      className="grid"
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(4,1fr)',
+        gap: '16px',
+      }}
+    >
+      {filteredClients.map((client, i) => {
+        const realIndex = filteredClientIndices[i]
+        const isSelected = selectedClientIndices.has(realIndex)
 
-                {/* Status */}
-                <div style={{ marginTop: 6, color: '#555' }}>
-                  {client.col_2 || '—'}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      )
-    ) : filteredPolicies.length === 0 ? (
-      <p className="text-muted">No policies found.</p>
-    ) : (
+        const fullName = client.col_1 || '—'
+        const contactNo = client.col_8 || '—'     // adjust if needed
+        const fullAddress = client.col_15 || '—'   // adjust if needed
+        const status = client.col_17 || '—'
+
+        return (
+          <div
+            key={realIndex}
+            role="button"
+            tabIndex={0}
+            onClick={() => setSelectedClientIndex(i)}
+            onKeyDown={(e) =>
+              e.key === 'Enter' && setSelectedClientIndex(i)
+            }
+            className="card client-card"
+            style={{
+              cursor: 'pointer',
+              padding: 16,
+              position: 'relative',
+              display: 'flex',
+              flexDirection: 'column',
+              minHeight: 180,
+              outline: isSelected
+                ? '2px solid var(--maxin-light)'
+                : undefined,
+            }}
+          >
+            {/* Checkbox */}
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={() => toggleClientSelection(realIndex)}
+              onClick={(e) => e.stopPropagation()}
+              aria-label={`Select ${fullName}`}
+              style={{
+                position: 'absolute',
+                right: 42,
+                top: 12,
+                width: 18,
+                height: 18,
+                cursor: 'pointer',
+              }}
+            />
+
+            {/* Delete Button */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                handleDeleteOneClient(realIndex)
+              }}
+              disabled={deleting}
+              aria-label="Delete client"
+              style={{
+                position: 'absolute',
+                right: 12,
+                top: 12,
+                padding: 4,
+                border: 'none',
+                background: 'transparent',
+                color: '#6b7280',
+                cursor: deleting ? 'not-allowed' : 'pointer',
+                borderRadius: 4,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = '#b91c1c'
+                e.currentTarget.style.background = '#fef2f2'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = '#6b7280'
+                e.currentTarget.style.background = 'transparent'
+              }}
+            >
+              <IconTrash size={18} />
+            </button>
+
+            {/* Contact Number (TOP) */}
+            <div
+              style={{
+                fontSize: '0.9rem',
+                color: '#444',
+                marginBottom: 6,
+                paddingRight: 60,
+              }}
+            >
+              {contactNo}
+            </div>
+
+            {/* Full Name */}
+            <div
+              style={{
+                fontWeight: 'bold',
+                fontSize: '1.25rem',
+                marginBottom: 0,
+                paddingRight: 60,
+              }}
+            >
+              {fullName}
+            </div>
+
+            {/* Full Address */}
+            <div
+              style={{
+                fontSize: '0.95rem',
+                color: '#555',
+                paddingRight: 60,
+              }}
+            >
+              {fullAddress}
+            </div>
+
+            {/* Status (BOTTOM) */}
+            <div
+              style={{
+                marginTop: 'auto',
+                marginTop: 16,
+                fontSize: '0.9rem',
+                fontWeight: 500,
+                color: '#555',
+              }}
+            >
+              {status}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+) : (
       /* ================= POLICY CARDS ================= */
       <div
         className="grid"
@@ -743,7 +794,7 @@ return (
                 aria-label={`Select policy ${policyNumber}`}
                 style={{
                   position: 'absolute',
-                  left: 12,
+                  right: 42,
                   top: 12,
                   width: 18,
                   height: 18,
@@ -791,7 +842,7 @@ return (
                   fontWeight: 'bold',
                   fontSize: '1.1rem',
                   marginBottom: 0,
-                  paddingLeft: 28,
+                  paddingLeft: 0,
                   paddingRight: 36,
                 }}
               >
@@ -807,7 +858,7 @@ return (
               <div
                 style={{
                   fontWeight: 'bold',
-                  fontSize: '1.5rem',
+                  fontSize: '1.2rem',
                   marginTop: 12,
                   marginBottom: 0,
                 }}
