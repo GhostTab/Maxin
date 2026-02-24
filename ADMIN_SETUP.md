@@ -36,7 +36,11 @@ WHERE email = 'your-admin@example.com';
 
 You should see `raw_app_meta_data` containing `{"role": "admin"}` (and possibly other keys). There is no separate "Admin" label in the Authentication → Users table; this column is the only place it shows in the dashboard (via this query).
 
-## 3. Add more admins later
+## 3. (Optional) Seed test data for the Dashboard
+
+In **Supabase → SQL Editor**, run the full **`supabase-seed.sql`** script. It inserts sample clients and policies (with empty file upload fields) and sets that submission as current. Use this to test the Dashboard charts and Data Management without entering data manually.
+
+## 4. Add more admins later
 
 Run the same `UPDATE auth.users ... WHERE email = '...'` for each new admin email. Only users whose `raw_app_meta_data` includes `"role":"admin"` can access data.
 

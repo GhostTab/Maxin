@@ -20,11 +20,13 @@ export default function Layout() {
     `sidebar-nav-link${isActive ? ' active' : ''}`
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'row' }}>
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'row', overflow: 'hidden' }}>
       <aside
         style={{
           width: 260,
           minWidth: 260,
+          flexShrink: 0,
+          overflow: 'hidden',
           background: 'var(--sidebar-bg)',
           color: 'var(--sidebar-text)',
           display: 'flex',
@@ -34,7 +36,7 @@ export default function Layout() {
         }}
       >
         <NavLink
-          to="/data"
+          to="/dashboard"
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -58,6 +60,9 @@ export default function Layout() {
           )}
         </NavLink>
         <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <NavLink to="/dashboard" className={navLinkClassName}>
+            Dashboard
+          </NavLink>
           <NavLink to="/add/client" className={navLinkClassName}>
             Add client
           </NavLink>
@@ -81,7 +86,7 @@ export default function Layout() {
           </button>
         </div>
       </aside>
-      <main style={{ flex: 1, padding: 32, minWidth: 0 }}>
+      <main style={{ flex: 1, minWidth: 0, minHeight: 0, padding: 32, overflow: 'auto' }}>
         <Outlet />
       </main>
     </div>

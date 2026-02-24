@@ -468,11 +468,17 @@ export default function DataManagement() {
   if (filterLower) {
     filteredPolicyIndices = []
     filteredPolicies = policyInfo.filter((p, idx) => {
-      const clientName = clientInfo.find(c =>
-        (p.col_1 && c.col_1 === p.col_1) ||
-        (p.col_2 && c.col_1 === p.col_2)
-      )?.col_1 || ''
-      const match = clientName.toLowerCase().includes(filterLower)
+      const fullName = (p.col_1 || '').toLowerCase()
+      const insuredName = (p.col_2 || '').toLowerCase()
+      const policyNo = (p.col_3 || '').toLowerCase()
+      const provider = (p.col_4 || '').toLowerCase()
+      const line = (p.col_5 || '').toLowerCase()
+      const match =
+        fullName.includes(filterLower) ||
+        insuredName.includes(filterLower) ||
+        policyNo.includes(filterLower) ||
+        provider.includes(filterLower) ||
+        line.includes(filterLower)
       if (match) filteredPolicyIndices.push(idx)
       return match
     })
@@ -549,7 +555,9 @@ return (
       <div className="page-actions">
         <input
           type="text"
-          placeholder="Filter by name, email, or contact…"
+          placeholder={activeSection === 'policy'
+            ? 'Filter by policy no, line, provider, insured name, full name…'
+            : 'Filter by name, email, or contact…'}
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           className="input-search"

@@ -9,6 +9,7 @@ import Spreadsheet from './pages/Spreadsheet'
 import AddClient from './pages/AddClient'
 import AddPolicy from './pages/AddPolicy'
 import DataManagement from './pages/DataManagement'
+import Dashboard from './pages/Dashboard'
 import Layout from './components/Layout'
 
 function ProtectedRoute({ children }) {
@@ -51,7 +52,8 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<Navigate to="/data" replace />} />
+        <Route index element={<Navigate to="/dashboard" replace />} />
+        <Route path="dashboard" element={<Dashboard />} />
         <Route path="sheet" element={<Spreadsheet />} />
         <Route path="add/client" element={<AddClient />} />
         <Route path="add/policy" element={<AddPolicy />} />

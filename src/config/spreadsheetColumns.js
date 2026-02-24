@@ -20,6 +20,17 @@ export const NATIONALITY_OPTIONS = [
   'Egyptian', 'Kenyan', 'Ghanaian', 'Other',
 ]
 
+/** Status options for Client and Policy (select). */
+export const STATUS_OPTIONS = [
+  'Active',
+  'Inactive',
+  'Pending',
+  'Expired',
+  'Cancelled',
+  'Lapsed',
+  'Renewed',
+]
+
 /** MAXIN providers for Policy Provider dropdown (select). */
 export const PROVIDER_OPTIONS = [
   'AXA',
@@ -54,7 +65,7 @@ export const SPREADSHEET_COLUMNS = {
     { data: 'col_14', title: 'Zip Code', type: 'text' },
     { data: 'col_15', title: 'Full Address', type: 'text' },
     { data: 'col_16', title: 'Upload KYC', type: 'text' },
-    { data: 'col_17', title: 'Status', type: 'text' },
+    { data: 'col_17', title: 'Status', type: 'text', inputType: 'select', options: STATUS_OPTIONS },
   ],
   Policy_Info: [
     { data: 'col_1', title: 'Full Name', type: 'text' },
@@ -65,7 +76,7 @@ export const SPREADSHEET_COLUMNS = {
     { data: 'col_6', title: 'Issued Date', type: 'text', inputType: 'date' },
     { data: 'col_7', title: 'Inception Date', type: 'text', inputType: 'date' },
     { data: 'col_8', title: 'Expiry Date', type: 'text', inputType: 'date' },
-    { data: 'col_9', title: 'Status', type: 'text' },
+    { data: 'col_9', title: 'Status', type: 'text', inputType: 'select', options: STATUS_OPTIONS },
     { data: 'col_10', title: 'Sum Insured', type: 'text', inputType: 'number' },
     { data: 'col_11', title: 'Gross Premium', type: 'text', inputType: 'number' },
     { data: 'col_12', title: 'Basic Premium', type: 'text', inputType: 'number' },
