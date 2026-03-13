@@ -1,4 +1,4 @@
-# Expiry reminders (SMS + Email)
+# Expiry reminders (SMS + Emails)
 
 This feature sends **SMS** (via Semaphore) and **email** (via Gmail or Resend) to clients when their policy expires (or N days before). For full **API reference and step-by-step setup**, see **[docs/EXPIRY-REMINDERS-API.md](EXPIRY-REMINDERS-API.md)**.
 
