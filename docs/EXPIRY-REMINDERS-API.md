@@ -1,6 +1,11 @@
 # Expiry reminders – API reference and setup steps
 
-This document describes the **send-expiry-reminders** Edge Function API and the steps to set it up so clients receive **SMS** (Semaphore) and **email** (Gmail or Resend) when their policy expires (or N days before).
+This document describes the **send-expiry-reminders** Edge Function API and the steps to set it up. The function sends **SMS** (Semaphore) and **email** (Gmail or Resend) for two reminder types:
+
+1. **30 days before expiry** – one SMS + email when the policy’s Expiry Date is exactly 30 days from today.
+2. **On expiry date (today)** – one SMS + email when the policy’s Expiry Date is today (already expired / expiring today).
+
+Each type is sent **once per policy**; state is stored in `expiry_reminders_sent`.
 
 ---
 
@@ -108,11 +113,11 @@ npx supabase secrets set GMAIL_FROM_EMAIL=you@gmail.com
 
 ### Step 1: Database (once)
 
-Create the table that tracks which reminders were sent.
+Create the table that tracks which reminders were sent (for both "30 days before" and "expiry day").
 
 1. Open **Supabase Dashboard** → **SQL Editor**.
-2. Paste and run the contents of **`supabase-expiry-reminders-table.sql`** from the project root.
-3. This creates `expiry_reminders_sent` and RLS so the Edge Function can write and authenticated users can read.
+2. Paste and run **`supabase-expiry-reminders-table.sql`** (creates `expiry_reminders_sent` and RLS).
+3. Paste and run **`supabase-expiry-reminders-30day-columns.sql`** (adds `sms_30day_sent_at`, `email_30day_sent_at` for the 30-day reminder).
 
 ### Step 2: Deploy the Edge Function
 
@@ -222,8 +227,8 @@ On Windows PowerShell, use `curl.exe` if the above `curl` is aliased to `Invoke-
 
 ### What to verify
 
-- **Supabase → Edge Functions → send-expiry-reminders → Logs:** Look for `[send-expiry-reminders]` lines (submission_id, serverToday, expiringCount, allExpiries, done summary).
-- **Response JSON:** Check `debug.expiringCount`, `debug.emailProvider`, `results[].sms`, `results[].email`.
+- **Supabase → Edge Functions → send-expiry-reminders → Logs:** Look for `[send-expiry-reminders]` lines (submission_id, serverToday, expiringToday, expiringIn30Days, done summary).
+- **Response JSON:** Check `debug.expiringTodayCount`, `debug.expiringIn30DaysCount`, `debug.emailProvider`, `results[].reminderType`, `results[].sms`, `results[].email`.
 - **Table Editor → expiry_reminders_sent:** Confirm rows after a successful send.
 
 ---
@@ -235,12 +240,13 @@ On Windows PowerShell, use `curl.exe` if the above `curl` is aliased to `Invoke-
 ```json
 {
   "ok": true,
-  "message": "Processed N policies expiring today",
+  "message": "Processed N expiring today + M expiring in 30 days",
   "debug": {
     "serverTodayUTC": "2026-03-13",
     "forceResend": false,
     "totalPolicies": 13,
-    "expiringCount": 2,
+    "expiringTodayCount": 1,
+    "expiringIn30DaysCount": 1,
     "tip": null,
     "emailProvider": "gmail",
     "emailSecretsHint": null,
@@ -252,6 +258,7 @@ On Windows PowerShell, use `curl.exe` if the above `curl` is aliased to `Invoke-
   },
   "results": [
     {
+      "reminderType": "today",
       "policyNo": "8989797",
       "insuredName": "Pingal, Loren Lloyd B.",
       "expiryStored": "2026-03-13",
@@ -270,11 +277,13 @@ On Windows PowerShell, use `curl.exe` if the above `curl` is aliased to `Invoke-
 | Field | Description |
 |-------|-------------|
 | `debug.serverTodayUTC` | Date used as “today” (UTC or `?today=` override). |
-| `debug.expiringCount` | Number of policies that expire on that date (or within N days). |
+| `debug.expiringTodayCount` | Number of policies whose expiry date is today. |
+| `debug.expiringIn30DaysCount` | Number of policies whose expiry date is 30 days from today. |
 | `debug.emailProvider` | `"resend"` \| `"gmail"` \| `"none"`. |
 | `debug.allExpiryDates` | All policies with expiry and normalized date; use for `?today=`. |
 | `debug.tip` | Hint when nothing was sent (e.g. use `?today=` or `?force=true`). |
-| `results[]` | One entry per expiring policy. |
+| `results[]` | One entry per policy in either "expiring today" or "expiring in 30 days". |
+| `results[].reminderType` | `"30day"` (30 days before) or `"today"` (expiry day). |
 | `results[].sms` | `"sent"` \| `"already_sent"` \| `"no_phone"` \| or error. |
 | `results[].email` | `"sent"` \| `"already_sent"` \| `"no_email"` \| `"no_email_key"` \| or error. |
 | `results[].matchedClient` | `true` if a client was found for SMS/email. |
@@ -303,7 +312,7 @@ On Windows PowerShell, use `curl.exe` if the above `curl` is aliased to `Invoke-
 | Issue | What to do |
 |-------|------------|
 | **Nothing sends** | Ensure you **Saved** after adding the policy (function uses latest submission only). Use `?today=YYYY-MM-DD` with a date from `debug.allExpiryDates`. Use `?force=true` to resend. |
-| **`expiringCount` is 0** | No policy has Expiry date = `serverTodayUTC`. Add a policy with that expiry and Save, or call with `?today=` set to an expiry you have. |
+| **No reminders sent** | No policy has Expiry date = today or today+30 days. Add policies and Save, or call with `?today=` set to an expiry you have. |
 | **`sms: "already_sent"`** | Reminder was already sent for that policy. Use `?force=true` to resend for testing. |
 | **`matchedClient: false`** | Policy’s Full Name / Insured Name doesn’t match any Client **Full Name**. Align names in Client Info and Policy Info. |
 | **`sms: "no_phone"`** | Client has no **Contact No** (col_8) or invalid format. Use 10-digit PH or 63xxxxxxxxx. |
@@ -326,7 +335,7 @@ The function reads from the **latest** row in `submissions` (by `submitted_at` d
 | SMS | **Client Info** → Contact No (col_8), normalized to Philippine format (e.g. 63xxxxxxxxx) |
 | Email | **Client Info** → Email (col_7) |
 
-Reminders are sent at most **once per policy per expiry date**; state is stored in `expiry_reminders_sent`.
+Two reminder types are sent at most **once per policy** each: (1) 30 days before expiry (`sms_30day_sent_at` / `email_30day_sent_at`), (2) on expiry day (`sms_sent_at` / `email_sent_at`). State is stored in `expiry_reminders_sent`.
 
 ---
 

@@ -13,8 +13,9 @@ declare const Deno: {
   serve: (handler: (req: Request) => Response | Promise<Response>) => void
 }
 
-// Send reminder on the day of expiration (0 = today). Set to 30 for "30 days before".
-const DAYS_BEFORE_EXPIRY = 0
+// Send two reminder types: (1) 30 days before expiry, (2) on the expiry date (today).
+const REMINDER_30_DAYS_BEFORE = 30
+const REMINDER_EXPIRY_DAY = 0
 const SEMAPHORE_URL = "https://api.semaphore.co/api/v4/messages"
 const RESEND_URL = "https://api.resend.com/emails"
 const GMAIL_OAUTH2_TOKEN_URL = "https://oauth2.googleapis.com/token"
@@ -63,13 +64,18 @@ function normName(s: string | undefined): string {
   return s.trim().replace(/\s+/g, " ").toLowerCase()
 }
 
-function isExpiringInDays(expiryStr: string | undefined, days: number, todayStr: string): boolean {
+/** Days from today to expiry (0 = today, 30 = 30 days from now). Returns null if invalid. */
+function getDiffDays(expiryStr: string | undefined, todayStr: string): number | null {
   const expiryNorm = toYYYYMMDD(expiryStr)
-  if (!expiryNorm) return false
+  if (!expiryNorm) return null
   const todayMs = new Date(todayStr + "Z").getTime()
   const expiryMs = new Date(expiryNorm + "Z").getTime()
-  const diffDays = Math.round((expiryMs - todayMs) / (24 * 60 * 60 * 1000))
-  return diffDays >= 0 && diffDays <= days
+  return Math.round((expiryMs - todayMs) / (24 * 60 * 60 * 1000))
+}
+
+function isExpiringInDays(expiryStr: string | undefined, days: number, todayStr: string): boolean {
+  const diff = getDiffDays(expiryStr, todayStr)
+  return diff !== null && diff >= 0 && diff <= days
 }
 
 function normalizePhone(phone: string | undefined): string | null {
@@ -261,52 +267,63 @@ Deno.serve(async (req) => {
     ? (submission.data as { policy_info: PolicyRow[] }).policy_info
     : []
 
-  const expiringPolicies = policyInfo.filter((p) => isExpiringInDays(p.col_8, DAYS_BEFORE_EXPIRY, serverToday))
-  // Log so cron runs show up in Edge Function logs; include submission id and expiry list to debug "not sending"
+  const expiringToday = policyInfo.filter((p) => getDiffDays(p.col_8, serverToday) === REMINDER_EXPIRY_DAY)
+  const expiringIn30Days = policyInfo.filter((p) => getDiffDays(p.col_8, serverToday) === REMINDER_30_DAYS_BEFORE)
+  const results: { reminderType: "30day" | "today"; policyNo: string; insuredName: string; expiryStored: string; matchedClient: boolean; phoneLast4: string | null; sms: string; smsError?: string; email: string }[] = []
+
+  // Log so cron runs show up in Edge Function logs
   const expiryList = policyInfo.map((p) => ({ no: p.col_3, raw: p.col_8, normalized: toYYYYMMDD(p.col_8) }))
   console.log(
-    `[send-expiry-reminders] submission_id=${submission.id} serverToday=${serverToday} totalPolicies=${policyInfo.length} expiringCount=${expiringPolicies.length} forceResend=${forceResend} allExpiries=${JSON.stringify(expiryList)}`
+    `[send-expiry-reminders] submission_id=${submission.id} serverToday=${serverToday} totalPolicies=${policyInfo.length} expiringToday=${expiringToday.length} expiringIn30Days=${expiringIn30Days.length} forceResend=${forceResend} allExpiries=${JSON.stringify(expiryList)}`
   )
-  const results: { policyNo: string; insuredName: string; expiryStored: string; matchedClient: boolean; phoneLast4: string | null; sms: string; smsError?: string; email: string }[] = []
 
-  for (const policy of expiringPolicies) {
-    const policyNo = (policy.col_3 || "").trim() || "N/A"
-    const insuredName = (policy.col_2 || policy.col_1 || "").trim() || "Valued Client"
-    const expiryDate = (policy.col_8 || "").trim()
-    const provider = (policy.col_4 || "").trim()
-    const line = (policy.col_5 || "").trim()
-    const policyIdentifier = `${policyNo}-${expiryDate}`
+  const processPolicies = async (
+    policies: PolicyRow[],
+    reminderType: "30day" | "today"
+  ) => {
+    const isToday = reminderType === "today"
+    const smsKey = isToday ? "sms_sent_at" : "sms_30day_sent_at"
+    const emailKey = isToday ? "email_sent_at" : "email_30day_sent_at"
 
-    const { data: existing } = await supabase
-      .from("expiry_reminders_sent")
-      .select("id, sms_sent_at, email_sent_at")
-      .eq("submission_id", submission.id)
-      .eq("policy_identifier", policyIdentifier)
-      .maybeSingle()
+    for (const policy of policies) {
+      const policyNo = (policy.col_3 || "").trim() || "N/A"
+      const insuredName = (policy.col_2 || policy.col_1 || "").trim() || "Valued Client"
+      const expiryDate = (policy.col_8 || "").trim()
+      const provider = (policy.col_4 || "").trim()
+      const line = (policy.col_5 || "").trim()
+      const policyIdentifier = `${policyNo}-${expiryDate}`
 
-    let smsSentAt: string | null = forceResend ? null : (existing?.sms_sent_at ?? null)
-    let emailSentAt: string | null = forceResend ? null : (existing?.email_sent_at ?? null)
+      const { data: existing } = await supabase
+        .from("expiry_reminders_sent")
+        .select("id, sms_sent_at, email_sent_at, sms_30day_sent_at, email_30day_sent_at")
+        .eq("submission_id", submission.id)
+        .eq("policy_identifier", policyIdentifier)
+        .maybeSingle()
 
-    // Match client by Full Name (policy col_1/col_2 are both set from client's Full Name in AddPolicy)
-    const policyName1 = normName(policy.col_1)
-    const policyName2 = normName(policy.col_2)
-    const client = clientInfo.find((c) => {
-      const c1 = normName(c.col_1)
-      if (!c1) return false
-      return c1 === policyName1 || c1 === policyName2
-    })
-    const phone = normalizePhone(client?.col_8)
-    const phoneLast4 = phone ? phone.slice(-4) : null
-    const clientEmail = (client?.col_7 || "").trim() && (client?.col_7 || "").includes("@") ? (client?.col_7 || "").trim() : null
+      const existingSms = existing?.[smsKey as keyof typeof existing] as string | null | undefined
+      const existingEmail = existing?.[emailKey as keyof typeof existing] as string | null | undefined
+      let smsSentAt: string | null = forceResend ? null : (existingSms ?? null)
+      let emailSentAt: string | null = forceResend ? null : (existingEmail ?? null)
 
-    const smsMessage = DAYS_BEFORE_EXPIRY === 0
-      ? `MAXIN Insurance: Your policy ${policyNo}${provider ? ` (${provider})` : ""} expires TODAY (${expiryDate}). Renew to avoid lapse. Contact us for assistance.`
-      : `MAXIN Insurance: Your policy ${policyNo}${provider ? ` (${provider})` : ""} expires on ${expiryDate}. Renew before then to avoid lapse. Contact us for assistance.`
-    const expiryLabel = DAYS_BEFORE_EXPIRY === 0 ? "expires today" : `expires in ${DAYS_BEFORE_EXPIRY} days`
-    const emailSubject = `Policy expiration reminder: ${policyNo} ${expiryLabel}`
-    const emailHtml = `
+      const policyName1 = normName(policy.col_1)
+      const policyName2 = normName(policy.col_2)
+      const client = clientInfo.find((c) => {
+        const c1 = normName(c.col_1)
+        if (!c1) return false
+        return c1 === policyName1 || c1 === policyName2
+      })
+      const phone = normalizePhone(client?.col_8)
+      const phoneLast4 = phone ? phone.slice(-4) : null
+      const clientEmail = (client?.col_7 || "").trim() && (client?.col_7 || "").includes("@") ? (client?.col_7 || "").trim() : null
+
+      const smsMessage = isToday
+        ? `MAXIN Insurance: Your policy ${policyNo}${provider ? ` (${provider})` : ""} expires TODAY (${expiryDate}). Renew to avoid lapse. Contact us for assistance.`
+        : `MAXIN Insurance: Your policy ${policyNo}${provider ? ` (${provider})` : ""} expires in 30 days (${expiryDate}). Renew before then to avoid lapse. Contact us for assistance.`
+      const expiryLabel = isToday ? "expires today" : "expires in 30 days"
+      const emailSubject = `Policy expiration reminder: ${policyNo} ${expiryLabel}`
+      const emailHtml = `
       <p>Dear ${insuredName},</p>
-      <p>This is a reminder that your insurance policy ${DAYS_BEFORE_EXPIRY === 0 ? "expires <strong>today</strong>." : `will expire in ${DAYS_BEFORE_EXPIRY} days.`}</p>
+      <p>This is a reminder that your insurance policy ${isToday ? "expires <strong>today</strong>." : "will expire in <strong>30 days</strong>."}</p>
       <ul>
         <li><strong>Policy No:</strong> ${policyNo}</li>
         <li><strong>Expiry Date:</strong> ${expiryDate}</li>
@@ -318,79 +335,85 @@ Deno.serve(async (req) => {
       <p>— MAXIN Insurance & Investment</p>
     `
 
-    if (phone && !smsSentAt) {
-      const smsResult = await sendSms(semaphoreKey, phone, smsMessage)
-      if (smsResult.ok) {
-        smsSentAt = new Date().toISOString()
+      if (phone && !smsSentAt) {
+        const smsResult = await sendSms(semaphoreKey, phone, smsMessage)
+        if (smsResult.ok) smsSentAt = new Date().toISOString()
+        results.push({
+          reminderType,
+          policyNo,
+          insuredName,
+          expiryStored: expiryDate,
+          matchedClient: !!client,
+          phoneLast4,
+          sms: smsResult.ok ? "sent" : (smsResult.error || "failed"),
+          smsError: smsResult.error,
+          email: emailSentAt ? "already_sent" : !clientEmail ? "no_email" : (hasResend || hasGmail) ? "pending" : "no_email_key",
+        })
+      } else {
+        results.push({
+          reminderType,
+          policyNo,
+          insuredName,
+          expiryStored: expiryDate,
+          matchedClient: !!client,
+          phoneLast4,
+          sms: smsSentAt ? "already_sent" : !phone ? "no_phone" : "skipped",
+          email: emailSentAt ? "already_sent" : !clientEmail ? "no_email" : (hasResend || hasGmail) ? "pending" : "no_email_key",
+        })
       }
-      results.push({
-        policyNo,
-        insuredName,
-        expiryStored: expiryDate,
-        matchedClient: !!client,
-        phoneLast4,
-        sms: smsResult.ok ? "sent" : (smsResult.error || "failed"),
-        smsError: smsResult.error,
-        email: emailSentAt ? "already_sent" : !clientEmail ? "no_email" : (hasResend || hasGmail) ? "pending" : "no_email_key",
-      })
-    } else {
-      results.push({
-        policyNo,
-        insuredName,
-        expiryStored: expiryDate,
-        matchedClient: !!client,
-        phoneLast4,
-        sms: smsSentAt ? "already_sent" : !phone ? "no_phone" : "skipped",
-        email: emailSentAt ? "already_sent" : !clientEmail ? "no_email" : (hasResend || hasGmail) ? "pending" : "no_email_key",
-      })
-    }
 
-    if (clientEmail && !emailSentAt) {
-      if (hasResend) {
-        const emailResult = await sendEmail(resendKey!, resendFrom, clientEmail, emailSubject, emailHtml)
-        if (emailResult.ok) emailSentAt = new Date().toISOString()
-        const r = results[results.length - 1]
-        if (r) r.email = emailResult.ok ? "sent" : (emailResult.error || "failed")
-      } else if (hasGmail && gmailClientId && gmailClientSecret && gmailRefreshToken) {
-        const tokenResult = await getGmailAccessToken(gmailClientId, gmailClientSecret, gmailRefreshToken)
-        if (tokenResult.ok) {
-          const emailResult = await sendEmailViaGmail(tokenResult.accessToken, emailFromDisplay, clientEmail, emailSubject, emailHtml)
+      if (clientEmail && !emailSentAt) {
+        if (hasResend) {
+          const emailResult = await sendEmail(resendKey!, resendFrom, clientEmail, emailSubject, emailHtml)
           if (emailResult.ok) emailSentAt = new Date().toISOString()
           const r = results[results.length - 1]
           if (r) r.email = emailResult.ok ? "sent" : (emailResult.error || "failed")
-        } else {
-          const r = results[results.length - 1]
-          if (r) r.email = "gmail_token_failed: " + (tokenResult.error || "unknown")
+        } else if (hasGmail && gmailClientId && gmailClientSecret && gmailRefreshToken) {
+          const tokenResult = await getGmailAccessToken(gmailClientId, gmailClientSecret, gmailRefreshToken)
+          if (tokenResult.ok) {
+            const emailResult = await sendEmailViaGmail(tokenResult.accessToken, emailFromDisplay, clientEmail, emailSubject, emailHtml)
+            if (emailResult.ok) emailSentAt = new Date().toISOString()
+            const r = results[results.length - 1]
+            if (r) r.email = emailResult.ok ? "sent" : (emailResult.error || "failed")
+          } else {
+            const r = results[results.length - 1]
+            if (r) r.email = "gmail_token_failed: " + (tokenResult.error || "unknown")
+          }
         }
       }
-    }
 
-    await supabase.from("expiry_reminders_sent").upsert(
-      {
+      const upsertPayload: Record<string, unknown> = {
         submission_id: submission.id,
         policy_identifier: policyIdentifier,
         expiry_date: expiryDate,
         client_phone: phone || null,
         client_email: clientEmail || null,
-        sms_sent_at: smsSentAt,
-        email_sent_at: emailSentAt,
-      },
-      { onConflict: "submission_id,policy_identifier,expiry_date" }
-    )
+        sms_sent_at: isToday ? (smsSentAt ?? existing?.sms_sent_at ?? null) : (existing?.sms_sent_at ?? null),
+        email_sent_at: isToday ? (emailSentAt ?? existing?.email_sent_at ?? null) : (existing?.email_sent_at ?? null),
+        sms_30day_sent_at: isToday ? (existing?.sms_30day_sent_at ?? null) : (smsSentAt ?? existing?.sms_30day_sent_at ?? null),
+        email_30day_sent_at: isToday ? (existing?.email_30day_sent_at ?? null) : (emailSentAt ?? existing?.email_30day_sent_at ?? null),
+      }
+      await supabase.from("expiry_reminders_sent").upsert(upsertPayload as Record<string, string | null>, {
+        onConflict: "submission_id,policy_identifier,expiry_date",
+      })
+    }
   }
 
+  await processPolicies(expiringIn30Days, "30day")
+  await processPolicies(expiringToday, "today")
+  const expiringPolicies = expiringIn30Days.length + expiringToday.length
+
   const tip =
-    expiringPolicies.length === 0
-      ? "No policies expire on serverTodayUTC. Save your form after adding a policy (the function uses the latest submission only). Use ?today=YYYY-MM-DD to match a policy expiry. Use ?force=true to resend."
+    expiringPolicies === 0
+      ? "No policies expire today or in 30 days on serverTodayUTC. Save your form after adding a policy. Use ?today=YYYY-MM-DD to match a policy expiry. Use ?force=true to resend."
       : results.some((r) => r.sms === "already_sent" || r.email === "already_sent")
         ? "Reminders were already sent for some/all. Use ?force=true to resend SMS and email."
         : undefined
 
-  // Log summary so Supabase Logs tab shows why nothing was sent
   const sentCount = results.filter((r) => r.sms === "sent" || r.email === "sent").length
   const alreadyCount = results.filter((r) => r.sms === "already_sent" || r.email === "already_sent").length
   console.log(
-    `[send-expiry-reminders] done: serverToday=${serverToday} expiring=${expiringPolicies.length} | sms/email sent=${sentCount} already_sent=${alreadyCount} | results: ${JSON.stringify(results.map((r) => ({ policy: r.policyNo, sms: r.sms, email: r.email })))}`
+    `[send-expiry-reminders] done: serverToday=${serverToday} expiringToday=${expiringToday.length} expiringIn30Days=${expiringIn30Days.length} | sent=${sentCount} already_sent=${alreadyCount} | results: ${JSON.stringify(results.map((r) => ({ type: r.reminderType, policy: r.policyNo, sms: r.sms, email: r.email })))}`
   )
 
   return new Response(
@@ -400,7 +423,8 @@ Deno.serve(async (req) => {
         serverTodayUTC: serverToday,
         forceResend,
         totalPolicies: policyInfo.length,
-        expiringCount: expiringPolicies.length,
+        expiringTodayCount: expiringToday.length,
+        expiringIn30DaysCount: expiringIn30Days.length,
         tip,
         emailProvider: hasResend ? "resend" : hasGmail ? "gmail" : "none",
         emailSecretsHint: !hasResend && !hasGmail
@@ -410,7 +434,7 @@ Deno.serve(async (req) => {
         clientNames: clientInfo.map((c) => c.col_1),
         allExpiryDates: policyInfo.map((p) => ({ policyNo: p.col_3, expiry: p.col_8, normalized: toYYYYMMDD(p.col_8), col_1: p.col_1, col_2: p.col_2 })),
       },
-      message: `Processed ${expiringPolicies.length} policies ${DAYS_BEFORE_EXPIRY === 0 ? "expiring today" : `expiring in ${DAYS_BEFORE_EXPIRY} days`}`,
+      message: `Processed ${expiringToday.length} expiring today + ${expiringIn30Days.length} expiring in 30 days`,
       results,
       emailConfigured: hasResend || hasGmail,
     }),

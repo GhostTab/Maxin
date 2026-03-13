@@ -11,9 +11,12 @@ The `send-expiry-reminders` Edge Function can send reminder emails **from your G
 5. Configure the **OAuth consent screen** (if you haven’t): **APIs & Services** → **OAuth consent screen** → **External** → add app name and your **User support email** → under **Scopes** add `https://www.googleapis.com/auth/gmail.send` → save. Under **Test users**, click **Add users** and add the Gmail address you will use to send (e.g. `you@gmail.com`). Save. (In Testing mode, only listed test users can sign in.)
 6. Create **OAuth client ID**:
    - Application type: **Web application** (required for OAuth Playground).
-   - Under **Authorized redirect URIs**, click **Add URI** and add exactly:  
+   - **Authorized JavaScript origins:** Google may require at least one. Click **Add URI** and add:  
+     `https://developers.google.com`  
+     (This is where the OAuth Playground runs. If the field is optional and you prefer, you can use `http://localhost` instead.)
+   - **Authorized redirect URIs:** Click **Add URI** and add exactly:  
      `https://developers.google.com/oauthplayground`
-   - Save. Note the **Client ID** and **Client secret**.
+   - Click **Save**. Note the **Client ID** and **Client secret**.
 
 ## 2. Get a refresh token
 
@@ -32,6 +35,15 @@ Your OAuth client is not allowed to redirect to the Playground. Fix it:
 3. Under **Authorized redirect URIs**, add: `https://developers.google.com/oauthplayground`
 4. If the client type is **Desktop app**, create a new **Web application** client instead, add the redirect URI above, then use the new Client ID and Client secret in the Playground.
 5. Save and try **Authorize APIs** again.
+
+### If you can't save the OAuth client ("Authorized JavaScript origins is empty")
+
+Google requires at least one **Authorized JavaScript origin** for a Web application client before you can save. Add one:
+
+- **Option 1:** `https://developers.google.com` (same domain as the Playground).
+- **Option 2:** `http://localhost` (common placeholder).
+
+Then add the **Authorized redirect URI** `https://developers.google.com/oauthplayground` and save again.
 
 ### If you see "Error 403: access_denied"
 

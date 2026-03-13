@@ -4,7 +4,7 @@ This feature sends **SMS** (via Semaphore) and **email** (via Gmail or Resend) t
 
 ## What runs
 
-- **Supabase Edge Function** `send-expiry-reminders`: reads the current submission, finds policies whose **Expiry Date** (Policy Info, col_8) is in the next 30 days, matches each policy to a client (by Full Name / Insured Name) for phone and email, sends one SMS and one email per client (if not already sent), and records sends in `expiry_reminders_sent` so we don’t send again the next day.
+- **Supabase Edge Function** `send-expiry-reminders`: reads the latest submission and sends two reminder types: (1) **30 days before expiry** – one SMS + email for policies expiring in 30 days; (2) **On expiry date (today)** – one SMS + email for policies expiring today. Each type is sent once per policy. It finds policies whose **Expiry Date** (Policy Info, col_8) is in the next 30 days, matches each policy to a client (by Full Name / Insured Name) for phone and email, sends one SMS and one email per client (if not already sent), and records sends in `expiry_reminders_sent` so we don’t send again the next day.
 
 ## 1. Database: tracking table
 
@@ -14,7 +14,8 @@ Run this in **Supabase → SQL Editor** (once):
 # File: supabase-expiry-reminders-table.sql
 ```
 
-Paste and run the contents of `supabase-expiry-reminders-table.sql` from the project root. This creates `expiry_reminders_sent` and RLS so the Edge Function (service role) can insert/update and authenticated users can read.
+1. Paste and run the contents of **`supabase-expiry-reminders-table.sql`** from the project root (creates `expiry_reminders_sent` and RLS).
+2. Then run **`supabase-expiry-reminders-30day-columns.sql`** to add columns for the "30 days before" reminder tracking (`sms_30day_sent_at`, `email_30day_sent_at`).
 
 ## 2. Edge Function: deploy and secrets
 
@@ -63,7 +64,7 @@ Paste and run the contents of `supabase-expiry-reminders-table.sql` from the pro
 
 See **Testing** below for what to check in the response.
 
-## 3. Schedule daily (cron)
+## 3. Schedule daily (cron)(cron-job.org)
 
 **Why reminders don’t run automatically:** The Edge Function only runs when something calls its URL. Deploying or testing with curl runs it once; it does **not** run on a schedule until you add a cron job that calls the URL every day.
 
