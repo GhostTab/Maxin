@@ -14,6 +14,10 @@ export default function ResetPassword() {
   const [recoveryReady, setRecoveryReady] = useState(false)
 
   useEffect(() => {
+    if (!supabase) {
+      setRecoveryReady(false)
+      return
+    }
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) setRecoveryReady(true)
     })
@@ -22,7 +26,7 @@ export default function ResetPassword() {
         setRecoveryReady(true)
       }
     })
-    return () => subscription.unsubscribe()
+    return () => subscription?.unsubscribe()
   }, [])
 
   async function handleSubmit(e) {
@@ -37,6 +41,11 @@ export default function ResetPassword() {
       return
     }
     setLoading(true)
+    if (!supabase) {
+      setError('Supabase is not configured.')
+      setLoading(false)
+      return
+    }
     try {
       const { error: err } = await supabase.auth.updateUser({ password })
       if (err) {

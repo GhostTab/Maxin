@@ -16,12 +16,24 @@ export default function Login() {
     e.preventDefault()
     setError('')
     setLoading(true)
+
+    if (!supabase) {
+      setError('Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your .env file, then restart the dev server.')
+      setLoading(false)
+      return
+    }
+
     try {
-      const { error: err } = await supabase.auth.signInWithPassword({ email, password })
+      const { error: err } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password
+      })
+
       if (err) {
         setError(err.message)
         return
       }
+
       navigate('/sheet', { replace: true })
     } finally {
       setLoading(false)

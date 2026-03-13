@@ -155,6 +155,17 @@ Output is in `dist/`. Deploy that folder to any static host (Vercel, Netlify, et
 
 ---
 
+## Expiry reminders (SMS + email)
+
+The app can send **SMS** (Semaphore) and **email** (Resend) to clients **30 days before** policy expiry. You need:
+
+- **Semaphore API key** (you have this) for SMS.
+- **Resend API key** (free at [resend.com](https://resend.com)) for email until you set up Gmail.
+
+Setup: run `supabase-expiry-reminders-table.sql` in the SQL Editor, deploy the Edge Function `send-expiry-reminders`, set secrets, and schedule it daily. **API reference and steps:** [docs/EXPIRY-REMINDERS-API.md](docs/EXPIRY-REMINDERS-API.md). Overview: [docs/EXPIRY-REMINDERS.md](docs/EXPIRY-REMINDERS.md).
+
+---
+
 ## License
 
 Private. Handsontable is non-commercial; check license if you use it in a commercial product.

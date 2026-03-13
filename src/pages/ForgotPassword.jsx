@@ -14,6 +14,11 @@ export default function ForgotPassword() {
     setError('')
     setSuccess(false)
     setLoading(true)
+    if (!supabase) {
+      setError('Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your .env file.')
+      setLoading(false)
+      return
+    }
     try {
       const redirectTo = `${window.location.origin}/reset-password`
       const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim(), {

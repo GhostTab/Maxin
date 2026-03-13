@@ -17,6 +17,11 @@ function ProtectedRoute({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (!supabase) {
+      setSession(null)
+      setLoading(false)
+      return
+    }
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       setLoading(false)
@@ -24,15 +29,11 @@ function ProtectedRoute({ children }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
     })
-    return () => subscription.unsubscribe()
+    return () => subscription?.unsubscribe()
   }, [])
 
   if (loading) return <div style={{ padding: 24, textAlign: 'center' }}>Loading...</div>
   if (!session) return <Navigate to="/login" replace />
-  if (session?.user?.app_metadata?.role !== 'admin') {
-    supabase.auth.signOut()
-    return <Navigate to="/login" replace state={{ message: 'Admin access only. Your account cannot access this system.' }} />
-  }
   return children
 }
 

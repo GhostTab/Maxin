@@ -12,7 +12,7 @@ export default function Layout() {
     if (hasUnsavedChanges && !window.confirm('You have unsaved changes. Save your work first, or leave anyway?\n\nClick OK to leave without saving, or Cancel to stay and save.')) {
       return
     }
-    await supabase.auth.signOut()
+    if (supabase) await supabase.auth.signOut()
     navigate('/login')
   }
 
