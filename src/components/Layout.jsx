@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../context/AuthContext'
 import { useUnsaved } from '../context/UnsavedContext'
 
 export default function Layout() {
   const navigate = useNavigate()
   const [logoError, setLogoError] = useState(false)
+  const { isAdmin } = useAuth()
   const { hasUnsavedChanges } = useUnsaved()
 
   async function handleLogout() {
@@ -63,18 +65,29 @@ export default function Layout() {
           <NavLink to="/dashboard" className={navLinkClassName}>
             Dashboard
           </NavLink>
-          <NavLink to="/add/client" className={navLinkClassName}>
-            Add client
-          </NavLink>
-          <NavLink to="/add/policy" className={navLinkClassName}>
-            Add policy
-          </NavLink>
+          {isAdmin && (
+            <>
+              <NavLink to="/add/client" className={navLinkClassName}>
+                Add client
+              </NavLink>
+              <NavLink to="/add/policy" className={navLinkClassName}>
+                Add policy
+              </NavLink>
+            </>
+          )}
           <NavLink to="/sheet" className={navLinkClassName}>
-            Spreadsheet
+            {isAdmin ? 'Spreadsheet' : 'My records'}
           </NavLink>
-          <NavLink to="/data" className={navLinkClassName}>
-            Data management
-          </NavLink>
+          {isAdmin && (
+            <NavLink to="/data" className={navLinkClassName}>
+              Data management
+            </NavLink>
+          )}
+          {isAdmin && (
+            <NavLink to="/users" className={navLinkClassName}>
+              User management
+            </NavLink>
+          )}
         </nav>
         <div style={{ padding: '16px 24px', borderTop: '1px solid rgba(255,255,255,0.12)' }}>
           <button

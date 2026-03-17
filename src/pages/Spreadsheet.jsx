@@ -4,6 +4,8 @@ import { registerAllModules } from 'handsontable/registry'
 import 'handsontable/dist/handsontable.full.min.css'
 import { SHEET_NAMES, getHandsontableColumns } from '../config/spreadsheetColumns'
 import { getCurrentSubmission } from '../lib/submissions'
+import { useAuth } from '../context/AuthContext'
+import { filterDataByClientEmail } from '../lib/filterClientData'
 
 registerAllModules()
 
@@ -23,6 +25,7 @@ function getGridDataFromHot(hotRef, columns) {
 }
 
 export default function Spreadsheet() {
+  const { user, isAdmin } = useAuth()
   const hotRefClient = useRef(null)
   const hotRefPolicy = useRef(null)
   const [activeTab, setActiveTab] = useState(SHEET_NAMES[0])
@@ -38,11 +41,13 @@ export default function Spreadsheet() {
     getCurrentSubmission()
       .then((current) => {
         if (!mounted) return
-        setCurrentData(current?.data || null)
+        const raw = current?.data || null
+        const toSet = raw && !isAdmin ? filterDataByClientEmail(raw, user?.email) : raw
+        setCurrentData(toSet)
       })
       .catch(() => setCurrentData(null))
     return () => { mounted = false }
-  }, [])
+  }, [isAdmin, user?.email])
 
   useEffect(() => {
     if (currentData == null) return

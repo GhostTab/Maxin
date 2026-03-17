@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../context/AuthContext'
 import { getCurrentSubmission, saveCurrent } from '../lib/submissions'
 import { exportCurrentToExcel } from '../lib/exportExcel'
 import { downloadFile } from '../lib/downloadFile'
@@ -298,6 +299,7 @@ function EditClientView({ client, clientIndex, policies, policyIndices, clientIn
 // ------------------------- DATA MANAGEMENT -------------------------
 export default function DataManagement() {
   const navigate = useNavigate()
+  const { isAdmin } = useAuth()
   const [current, setCurrent] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -310,6 +312,12 @@ export default function DataManagement() {
   const [selectedClientIndices, setSelectedClientIndices] = useState(() => new Set())
   const [selectedPolicyIndices, setSelectedPolicyIndices] = useState(() => new Set())
   const [deleting, setDeleting] = useState(false)
+
+  useEffect(() => {
+    if (!isAdmin) navigate('/dashboard', { replace: true })
+  }, [isAdmin, navigate])
+
+  if (!isAdmin) return null
 
   const load = useCallback(async () => {
     setLoading(true)

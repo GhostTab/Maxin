@@ -12,6 +12,8 @@ import {
 } from 'chart.js'
 import { Bar, Doughnut } from 'react-chartjs-2'
 import { getCurrentSubmission } from '../lib/submissions'
+import { useAuth } from '../context/AuthContext'
+import { filterDataByClientEmail } from '../lib/filterClientData'
 
 ChartJS.register(
   CategoryScale,
@@ -43,6 +45,7 @@ function parseNum(val) {
 
 export default function Dashboard() {
   const navigate = useNavigate()
+  const { user, isAdmin } = useAuth()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [data, setData] = useState(null)
@@ -52,7 +55,9 @@ export default function Dashboard() {
     getCurrentSubmission()
       .then((current) => {
         if (!mounted) return
-        setData(current?.data || { client_info: [], policy_info: [] })
+        const raw = current?.data || { client_info: [], policy_info: [] }
+        const toSet = isAdmin ? raw : filterDataByClientEmail(raw, user?.email)
+        setData(toSet)
       })
       .catch((err) => {
         if (!mounted) return
@@ -62,7 +67,7 @@ export default function Dashboard() {
         if (mounted) setLoading(false)
       })
     return () => { mounted = false }
-  }, [])
+  }, [isAdmin, user?.email])
 
   const reports = useMemo(() => {
     const clientInfo = Array.isArray(data?.client_info) ? data.client_info : []
@@ -230,15 +235,17 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div style={{ marginTop: 32 }}>
-        <button
-          type="button"
-          onClick={() => navigate('/data')}
-          className="btn btn-primary"
-        >
-          Open Data management
-        </button>
-      </div>
+      {isAdmin && (
+        <div style={{ marginTop: 32 }}>
+          <button
+            type="button"
+            onClick={() => navigate('/data')}
+            className="btn btn-primary"
+          >
+            Open Data management
+          </button>
+        </div>
+      )}
     </div>
   )
 }

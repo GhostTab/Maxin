@@ -1,0 +1,9 @@
+# Edge Function config. Lets OPTIONS (CORS preflight) reach the function;
+# the function still checks JWT and returns 401/403 for non-admins.
+# Deploy with: supabase functions deploy admin-create-user && supabase functions deploy admin-list-users
+
+[functions.admin-create-user]
+verify_jwt = false
+
+[functions.admin-list-users]
+verify_jwt = false

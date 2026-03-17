@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../context/AuthContext'
 import { getCurrentSubmission, saveCurrent } from '../lib/submissions'
 import { uploadFile } from '../lib/upload'
 import { SPREADSHEET_COLUMNS, UPLOAD_FIELD_KEYS } from '../config/spreadsheetColumns'
@@ -21,6 +22,7 @@ function isFieldFilled(col, values, files, selectedClientName) {
 
 export default function AddPolicy() {
   const navigate = useNavigate()
+  const { isAdmin } = useAuth()
   const [clients, setClients] = useState([])
   const [selectedClientId, setSelectedClientId] = useState('')
   const [policyValues, setPolicyValues] = useState({})
@@ -54,6 +56,12 @@ export default function AddPolicy() {
     })
   }
   const setPolicyFile = (key, file) => setPolicyFiles((prev) => ({ ...prev, [key]: file }))
+
+  useEffect(() => {
+    if (!isAdmin) navigate('/dashboard', { replace: true })
+  }, [isAdmin, navigate])
+
+  if (!isAdmin) return null
 
   useEffect(() => {
     let mounted = true

@@ -11,10 +11,16 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState(location.state?.message || '')
   const [loading, setLoading] = useState(false)
+  const [emailNotConfirmed, setEmailNotConfirmed] = useState(false)
+  const [resendSent, setResendSent] = useState(false)
+  const [resendError, setResendError] = useState('')
 
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
+    setEmailNotConfirmed(false)
+    setResendSent(false)
+    setResendError('')
     setLoading(true)
 
     if (!supabase) {
@@ -24,19 +30,53 @@ export default function Login() {
     }
 
     try {
+      // #region agent log
+      const trimmedEmail = email.trim()
+      fetch('http://127.0.0.1:7456/ingest/7373649d-10ac-4836-ba0c-cd604fef4eef',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'b81977'},body:JSON.stringify({sessionId:'b81977',location:'Login.jsx:pre-signIn',message:'Login attempt',data:{supabaseOk:!!supabase,emailLen:trimmedEmail.length,passwordLen:password.length},timestamp:Date.now(),hypothesisId:'H3_H4'})}).catch(()=>{});
+      // #endregion
       const { error: err } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
+        email: trimmedEmail,
         password
       })
 
+      // #region agent log
       if (err) {
+        try { sessionStorage.setItem('debug_login_error_b81977', JSON.stringify({ message: err.message, status: err.status, name: err.name })) } catch (_) {}
+        fetch('http://127.0.0.1:7456/ingest/7373649d-10ac-4836-ba0c-cd604fef4eef',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'b81977'},body:JSON.stringify({sessionId:'b81977',location:'Login.jsx:auth-error',message:'Supabase auth error',data:{errMessage:err.message,errStatus:err.status,name:err.name},timestamp:Date.now(),hypothesisId:'H1_H2_H5'})}).catch(()=>{});
+      }
+      // #endregion
+      if (err) {
+        const isEmailNotConfirmed = /email not confirmed|email_not_confirmed/i.test(err.message) || err.code === 'email_not_confirmed'
+        if (isEmailNotConfirmed) setEmailNotConfirmed(true)
         setError(err.message)
         return
       }
 
+      // #region agent log
+      fetch('http://127.0.0.1:7456/ingest/7373649d-10ac-4836-ba0c-cd604fef4eef',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'b81977'},body:JSON.stringify({sessionId:'b81977',location:'Login.jsx:auth-success',message:'Login success',data:{},timestamp:Date.now(),hypothesisId:'success'})}).catch(()=>{});
+      // #endregion
       navigate('/sheet', { replace: true })
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleResendConfirmation() {
+    if (!supabase || !email.trim()) return
+    setResendError('')
+    setResendSent(false)
+    try {
+      const { error: resendErr } = await supabase.auth.resend({
+        type: 'signup',
+        email: email.trim()
+      })
+      if (resendErr) {
+        setResendError(resendErr.message)
+        return
+      }
+      setResendSent(true)
+    } catch (e) {
+      setResendError(e?.message || 'Failed to resend')
     }
   }
 
@@ -182,6 +222,39 @@ export default function Login() {
                   }}
                 >
                   {error}
+                </div>
+              )}
+              {emailNotConfirmed && (
+                <div
+                  style={{
+                    marginBottom: 16,
+                    padding: 12,
+                    background: 'rgba(255,255,255,0.1)',
+                    color: 'rgba(255,255,255,0.95)',
+                    borderRadius: 8,
+                    fontSize: 14,
+                    border: '1px solid rgba(255,255,255,0.2)',
+                  }}
+                >
+                  <p style={{ margin: '0 0 10px 0' }}>Confirm your email using the link we sent you, or resend it below.</p>
+                  {resendError && <p style={{ margin: '0 0 8px 0', color: 'rgba(255,120,120,0.95)' }}>{resendError}</p>}
+                  {resendSent && <p style={{ margin: '0 0 8px 0', color: 'rgba(120,255,120,0.95)' }}>Confirmation email sent. Check your inbox.</p>}
+                  <button
+                    type="button"
+                    onClick={handleResendConfirmation}
+                    disabled={loading}
+                    style={{
+                      padding: '8px 14px',
+                      borderRadius: 8,
+                      border: '1px solid rgba(255,255,255,0.3)',
+                      background: 'rgba(255,255,255,0.15)',
+                      color: '#fff',
+                      cursor: loading ? 'not-allowed' : 'pointer',
+                      fontSize: 14,
+                    }}
+                  >
+                    Resend confirmation email
+                  </button>
                 </div>
               )}
   

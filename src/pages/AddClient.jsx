@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../context/AuthContext'
 import { getCurrentSubmission, saveCurrent } from '../lib/submissions'
 import { uploadFile } from '../lib/upload'
 import { SPREADSHEET_COLUMNS, UPLOAD_FIELD_KEYS } from '../config/spreadsheetColumns'
@@ -18,16 +19,23 @@ function isFieldFilled(col, values, files) {
 
 export default function AddClient() {
   const navigate = useNavigate()
+  const { isAdmin } = useAuth()
   const [clientValues, setClientValues] = useState({})
   const [clientFiles, setClientFiles] = useState({})
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
 
+  useEffect(() => {
+    if (!isAdmin) navigate('/dashboard', { replace: true })
+  }, [isAdmin, navigate])
+
   const setClient = (key, value) => setClientValues((prev) => ({ ...prev, [key]: value }))
   const setClientFile = (key, file) => setClientFiles((prev) => ({ ...prev, [key]: file }))
 
   const allClientFilled = clientCols.every((col) => isFieldFilled(col, clientValues, clientFiles))
+
+  if (!isAdmin) return null
 
   async function handleSubmit(e) {
     e.preventDefault()
