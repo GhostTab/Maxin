@@ -1,5 +1,5 @@
-// Admin-only: list auth users (id, email, created_at, role).
-// Call with: GET (?per_page=50&page=1) or POST body { page?, per_page? }, Authorization: Bearer <session JWT>.
+// Admin-only: update user ban state (deactivate/reactivate). No delete.
+// POST body: { userId: string, ban_duration: '876000h' | 'none' }.
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from "npm:@supabase/supabase-js@2"
@@ -11,7 +11,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, content-type, x-client-info, apikey",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 }
 
 function jsonResponse(body: object, status: number) {
@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
     if (req.method === "OPTIONS") {
       return new Response("ok", { status: 200, headers: CORS_HEADERS })
     }
-    if (req.method !== "GET" && req.method !== "POST") {
+    if (req.method !== "POST") {
       return jsonResponse({ error: "Method not allowed" }, 405)
     }
 
@@ -52,35 +52,30 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Admin only" }, 403)
     }
 
-    let page = 1
-    let perPage = 50
-    if (req.method === "POST") {
-      try {
-        const body = await req.json().catch(() => ({}))
-        page = Math.max(1, parseInt(String(body?.page ?? 1), 10))
-        perPage = Math.min(100, Math.max(1, parseInt(String(body?.per_page ?? 50), 10)))
-      } catch {
-        // keep defaults
-      }
-    } else {
-      const url = new URL(req.url)
-      page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10))
-      perPage = Math.min(100, Math.max(1, parseInt(url.searchParams.get("per_page") || "50", 10)))
+    let body: { userId?: string; ban_duration?: string }
+    try {
+      body = await req.json()
+    } catch {
+      return jsonResponse({ error: "Invalid JSON body" }, 400)
+    }
+    const userId = typeof body.userId === "string" ? body.userId.trim() : ""
+    const banDuration = typeof body.ban_duration === "string" ? body.ban_duration.trim() : ""
+    if (!userId) {
+      return jsonResponse({ error: "userId is required" }, 400)
+    }
+    if (banDuration !== "876000h" && banDuration !== "none") {
+      return jsonResponse({ error: "ban_duration must be '876000h' (deactivate) or 'none' (reactivate)" }, 400)
     }
 
     const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
-    const { data, error } = await adminClient.auth.admin.listUsers({ page, perPage })
-    if (error) {
-      return jsonResponse({ error: error.message }, 500)
+    const { error: updateError } = await adminClient.auth.admin.updateUserById(userId, {
+      ban_duration: banDuration,
+    })
+
+    if (updateError) {
+      return jsonResponse({ error: updateError.message || "Failed to update user" }, 400)
     }
-    const users = (data.users || []).map((u) => ({
-      id: u.id,
-      email: u.email,
-      created_at: u.created_at,
-      role: (u.app_metadata?.role as string) || "user",
-      banned_until: (u as { banned_until?: string | null }).banned_until ?? null,
-    }))
-    return jsonResponse({ users, total: data.total }, 200)
+    return jsonResponse({ ok: true }, 200)
   } catch (err) {
     return jsonResponse({ error: (err instanceof Error ? err.message : "Function error") }, 500)
   }

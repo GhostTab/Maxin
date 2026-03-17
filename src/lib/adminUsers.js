@@ -9,6 +9,8 @@ import { supabase } from './supabase'
 const FUNCTIONS = {
   createUser: 'admin-create-user',
   listUsers: 'admin-list-users',
+  createClientAccountAndEmail: 'create-client-account-and-email',
+  updateUserBan: 'admin-update-user',
 }
 
 function getFunctionsUrl() {
@@ -41,6 +43,51 @@ export async function createUser(email, password) {
     method: 'POST',
     headers,
     body: JSON.stringify({ email: email.trim(), password }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    const msg = data?.error || data?.message || `Request failed (${res.status})`
+    if (res.status === 401) {
+      throw new Error(`${msg} Log out and log back in if you were just set as admin.`)
+    }
+    throw new Error(msg)
+  }
+  return data
+}
+
+export async function createClientAccountAndEmail(email, clientName) {
+  if (!supabase) throw new Error('Supabase not configured')
+  const url = getFunctionsUrl()
+  if (!url) throw new Error('VITE_SUPABASE_URL not set')
+  const headers = await getAuthHeaders()
+  const res = await fetch(`${url}/${FUNCTIONS.createClientAccountAndEmail}`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      email: typeof email === 'string' ? email.trim() : '',
+      clientName: typeof clientName === 'string' ? clientName.trim() || undefined : undefined,
+    }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    const msg = data?.error || data?.message || `Request failed (${res.status})`
+    if (res.status === 401) {
+      throw new Error(`${msg} Log out and log back in if you were just set as admin.`)
+    }
+    throw new Error(msg)
+  }
+  return data
+}
+
+export async function updateUserBan(userId, banDuration) {
+  if (!supabase) throw new Error('Supabase not configured')
+  const url = getFunctionsUrl()
+  if (!url) throw new Error('VITE_SUPABASE_URL not set')
+  const headers = await getAuthHeaders()
+  const res = await fetch(`${url}/${FUNCTIONS.updateUserBan}`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ userId: String(userId).trim(), ban_duration: banDuration }),
   })
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {

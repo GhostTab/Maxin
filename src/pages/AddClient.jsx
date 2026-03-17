@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { getCurrentSubmission, saveCurrent } from '../lib/submissions'
 import { uploadFile } from '../lib/upload'
+import { createClientAccountAndEmail } from '../lib/adminUsers'
 import { SPREADSHEET_COLUMNS, UPLOAD_FIELD_KEYS } from '../config/spreadsheetColumns'
 import { FormSection } from '../components/RecordForm'
 
@@ -25,6 +26,7 @@ export default function AddClient() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [accountWarning, setAccountWarning] = useState('')
 
   useEffect(() => {
     if (!isAdmin) navigate('/dashboard', { replace: true })
@@ -41,6 +43,7 @@ export default function AddClient() {
     e.preventDefault()
     setError('')
     setSuccess(false)
+    setAccountWarning('')
     if (!allClientFilled) {
       setError('Please fill in all client fields.')
       return
@@ -66,10 +69,22 @@ export default function AddClient() {
         policy_info: policyInfo,
       }, `Added client: ${(clientValues.col_1 || '').trim() || 'New client'}`)
 
+      const email = String(clientRow.col_7 ?? clientValues.col_7 ?? '').trim()
+      const clientName = String(clientRow.col_1 ?? clientValues.col_1 ?? '').trim() || undefined
+      let accountFailed = false
+      if (email) {
+        try {
+          await createClientAccountAndEmail(email, clientName)
+        } catch (accountErr) {
+          accountFailed = true
+          setAccountWarning(accountErr?.message || 'Unknown error.')
+        }
+      }
+
       setSuccess(true)
       setClientValues({})
       setClientFiles({})
-      setTimeout(() => navigate('/data'), 1500)
+      setTimeout(() => navigate('/data'), accountFailed ? 4000 : 1500)
     } catch (err) {
       setError(err.message || 'Failed to save.')
     } finally {
@@ -83,7 +98,15 @@ export default function AddClient() {
       <p className="page-description">Add a new client. You can add policies for this client later from Add policy.</p>
 
       {error && <div className="alert alert-error">{error}</div>}
-      {success && <div className="alert alert-success">Client saved. Redirecting to Data management…</div>}
+      {success && !accountWarning && (
+        <div className="alert alert-success">Client saved. An account was created and login details were sent to their email.</div>
+      )}
+      {success && accountWarning && (
+        <>
+          <div className="alert alert-success">Client saved.</div>
+          <div className="alert alert-warning">Account creation or email failed: {accountWarning}. You can create an account manually from User management.</div>
+        </>
+      )}
 
       <form onSubmit={handleSubmit}>
         <FormSection
