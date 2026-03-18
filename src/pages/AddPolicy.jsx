@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { getCurrentSubmission, saveCurrent } from '../lib/submissions'
 import { uploadFile } from '../lib/upload'
 import { SPREADSHEET_COLUMNS, UPLOAD_FIELD_KEYS } from '../config/spreadsheetColumns'
-import { FormSection } from '../components/RecordForm'
+import { FormWithSections } from '../components/RecordForm'
 
 const policyCols = SPREADSHEET_COLUMNS.Policy_Info
 
@@ -140,16 +140,16 @@ export default function AddPolicy() {
   }
 
   return (
-    <div className="page-content">
-      <h2 className="page-heading">Add policy</h2>
+    <div className="page-content page-content--form">
+      <h1 className="page-heading">Add policy</h1>
       <p className="page-description">Add a policy for an existing client. You must have at least one client before adding a policy.</p>
 
-      {error && <div className="alert alert-error">{error}</div>}
+      {error && <div className="alert alert-error" role="alert">{error}</div>}
       {success && <div className="alert alert-success">Policy saved. Redirecting to Data management…</div>}
 
       {clients.length === 0 ? (
-        <div className="card" style={{ padding: 24 }}>
-          <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
+        <div className="card">
+          <p className="text-muted" style={{ margin: 0 }}>
             No clients yet. Add a client first from <strong>Add client</strong>, then come back here to add a policy.
           </p>
           <button type="button" onClick={() => navigate('/add/client')} className="btn btn-primary" style={{ marginTop: 16 }}>
@@ -158,54 +158,49 @@ export default function AddPolicy() {
         </div>
       ) : (
         <form onSubmit={handleSubmit}>
-          <div className="card" style={{ padding: 24, marginBottom: 24 }}>
-            <h3 style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 600 }}>Link to client</h3>
-            <p style={{ margin: '0 0 12px', fontSize: 13, color: 'var(--text-muted)' }}>
-              Select the client this policy belongs to. Required.
-            </p>
-            <select
-              value={selectedClientId}
-              onChange={(e) => setSelectedClientId(e.target.value)}
-              required
-              style={{
-                width: '100%',
-                maxWidth: 400,
-                padding: '10px 14px',
-                border: '1px solid var(--input-border, #e2e8f0)',
-                borderRadius: 8,
-                fontSize: 14,
-              }}
-            >
-              <option value="">Select client…</option>
-              {clients.map((c, i) => (
-                <option key={i} value={i}>
-                  {c.col_1 || '—'} {c.col_7 ? `(${c.col_7})` : ''}
-                </option>
-              ))}
-            </select>
-          </div>
+          <div className="card">
+            <div className="form-section-block">
+              <h3 className="form-section-block-title">Link to client</h3>
+              <p className="form-section-block-desc">
+                Select the client this policy belongs to. Required.
+              </p>
+              <select
+                value={selectedClientId}
+                onChange={(e) => setSelectedClientId(e.target.value)}
+                required
+                className="input input-select"
+                style={{ maxWidth: 400 }}
+              >
+                <option value="">Select client…</option>
+                {clients.map((c, i) => (
+                  <option key={i} value={i}>
+                    {c.col_1 || '—'} {c.col_7 ? `(${c.col_7})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <FormSection
-            title="Policy information"
-            columns={policyCols}
-            values={policyValues}
-            onChange={setPolicy}
-            uploadFieldKeys={UPLOAD_FIELD_KEYS.Policy_Info}
-            files={policyFiles}
-            onFileChange={setPolicyFile}
-          />
+            <FormWithSections
+              sheetName="Policy_Info"
+              values={policyValues}
+              onChange={setPolicy}
+              uploadFieldKeys={UPLOAD_FIELD_KEYS.Policy_Info}
+              files={policyFiles}
+              onFileChange={setPolicyFile}
+            />
 
-          <div className="form-actions">
-            <button
-              type="submit"
-              disabled={submitting || !formComplete}
-              className="btn btn-primary"
-            >
-              {submitting ? 'Saving…' : 'Save policy'}
-            </button>
-            <button type="button" onClick={() => navigate('/data')} className="btn btn-ghost">
-              Cancel
-            </button>
+            <div className="form-actions">
+              <button
+                type="submit"
+                disabled={submitting || !formComplete}
+                className="btn btn-primary"
+              >
+                {submitting ? 'Saving…' : 'Save policy'}
+              </button>
+              <button type="button" onClick={() => navigate('/data')} className="btn btn-secondary">
+                Cancel
+              </button>
+            </div>
           </div>
         </form>
       )}

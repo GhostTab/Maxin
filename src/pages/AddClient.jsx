@@ -6,7 +6,7 @@ import { getCurrentSubmission, saveCurrent } from '../lib/submissions'
 import { uploadFile } from '../lib/upload'
 import { createClientAccountAndEmail } from '../lib/adminUsers'
 import { SPREADSHEET_COLUMNS, UPLOAD_FIELD_KEYS } from '../config/spreadsheetColumns'
-import { FormSection } from '../components/RecordForm'
+import { FormWithSections } from '../components/RecordForm'
 
 const clientCols = SPREADSHEET_COLUMNS.Client_Info
 
@@ -93,11 +93,11 @@ export default function AddClient() {
   }
 
   return (
-    <div className="page-content">
-      <h2 className="page-heading">Add client</h2>
+    <div className="page-content page-content--form">
+      <h1 className="page-heading">Add client</h1>
       <p className="page-description">Add a new client. You can add policies for this client later from Add policy.</p>
 
-      {error && <div className="alert alert-error">{error}</div>}
+      {error && <div className="alert alert-error" role="alert">{error}</div>}
       {success && !accountWarning && (
         <div className="alert alert-success">Client saved. An account was created and login details were sent to their email.</div>
       )}
@@ -109,27 +109,27 @@ export default function AddClient() {
       )}
 
       <form onSubmit={handleSubmit}>
-        <FormSection
-          title="Client information"
-          columns={clientCols}
-          values={clientValues}
-          onChange={setClient}
-          uploadFieldKeys={UPLOAD_FIELD_KEYS.Client_Info}
-          files={clientFiles}
-          onFileChange={setClientFile}
-        />
-
-        <div className="form-actions">
-          <button
-            type="submit"
-            disabled={submitting || !allClientFilled}
-            className="btn btn-primary"
-          >
-            {submitting ? 'Saving…' : 'Save client'}
-          </button>
-          <button type="button" onClick={() => navigate('/data')} className="btn btn-ghost">
-            Cancel
-          </button>
+        <div className="card">
+          <FormWithSections
+            sheetName="Client_Info"
+            values={clientValues}
+            onChange={setClient}
+            uploadFieldKeys={UPLOAD_FIELD_KEYS.Client_Info}
+            files={clientFiles}
+            onFileChange={setClientFile}
+          />
+          <div className="form-actions">
+            <button
+              type="submit"
+              disabled={submitting || !allClientFilled}
+              className="btn btn-primary"
+            >
+              {submitting ? 'Saving…' : 'Save client'}
+            </button>
+            <button type="button" onClick={() => navigate('/data')} className="btn btn-secondary">
+              Cancel
+            </button>
+          </div>
         </div>
       </form>
     </div>

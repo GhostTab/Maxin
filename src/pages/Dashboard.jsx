@@ -37,6 +37,45 @@ const CHART_COLORS = [
   '#bee3f8',
 ]
 
+function IconUsers({ size = 18 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  )
+}
+
+function IconFileText({ size = 18 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+      <line x1="16" y1="13" x2="8" y2="13" />
+      <line x1="16" y1="17" x2="8" y2="17" />
+    </svg>
+  )
+}
+
+function IconShield({ size = 18 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    </svg>
+  )
+}
+
+function IconDollar({ size = 18 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <line x1="12" y1="1" x2="12" y2="23" />
+      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+    </svg>
+  )
+}
+
 function parseNum(val) {
   if (val == null || val === '') return 0
   const n = parseFloat(String(val).replace(/,/g, ''))
@@ -119,64 +158,73 @@ export default function Dashboard() {
     )
   }
 
-  const cardStyle = {
-    background: 'var(--card-bg, #fff)',
-    border: '1px solid var(--border-subtle, #e8ecf1)',
-    borderRadius: 'var(--radius-lg, 12px)',
-    padding: 'var(--space-card, 24px)',
-    boxShadow: 'var(--shadow-card)',
-  }
-  const statValueStyle = { fontSize: '1.75rem', fontWeight: 700, color: 'var(--maxin-dark)', margin: '0 0 4px' }
-  const statLabelStyle = { fontSize: 13, color: 'var(--text-muted)', margin: 0 }
-
   return (
-    <div className="page-content" style={{ maxWidth: 1000 }}>
-      <h2 className="page-heading">Dashboard</h2>
-      <p className="page-description">Summary and reports from your client and policy data.</p>
+    <div className="page-content">
+      <div className="page-header" style={{ marginBottom: 24 }}>
+        <div>
+          <h1 className="page-heading">Dashboard</h1>
+          <p className="page-description">Summary and reports from your client and policy data.</p>
+        </div>
+        {isAdmin && (
+          <div className="dashboard-header-actions">
+            <button
+              type="button"
+              onClick={() => navigate('/data')}
+              className="btn btn-primary"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
+            >
+              <IconFileText size={18} />
+              Open Data management
+            </button>
+          </div>
+        )}
+      </div>
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-          gap: 20,
-          marginBottom: 32,
-        }}
-      >
-        <div style={cardStyle}>
-          <p style={statValueStyle}>{reports.totalClients}</p>
-          <p style={statLabelStyle}>Total clients</p>
+      <div className="card-grid dashboard-kpis">
+        <div className="stat-card stat-card--kpi">
+          <div className="stat-card-top">
+            <span className="stat-card-icon"><IconUsers size={18} /></span>
+            <span className="stat-card-label">Total clients</span>
+          </div>
+          <p className="stat-card-value">{reports.totalClients}</p>
         </div>
-        <div style={cardStyle}>
-          <p style={statValueStyle}>{reports.totalPolicies}</p>
-          <p style={statLabelStyle}>Total policies</p>
+        <div className="stat-card stat-card--kpi">
+          <div className="stat-card-top">
+            <span className="stat-card-icon"><IconShield size={18} /></span>
+            <span className="stat-card-label">Total policies</span>
+          </div>
+          <p className="stat-card-value">{reports.totalPolicies}</p>
         </div>
-        <div style={cardStyle}>
-          <p style={statValueStyle}>
+        <div className="stat-card stat-card--kpi">
+          <div className="stat-card-top">
+            <span className="stat-card-icon"><IconDollar size={18} /></span>
+            <span className="stat-card-label">Sum insured (total)</span>
+          </div>
+          <p className="stat-card-value">
             {reports.sumInsuredTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}
           </p>
-          <p style={statLabelStyle}>Sum insured (total)</p>
         </div>
-        <div style={cardStyle}>
-          <p style={statValueStyle}>
+        <div className="stat-card stat-card--kpi">
+          <div className="stat-card-top">
+            <span className="stat-card-icon"><IconDollar size={18} /></span>
+            <span className="stat-card-label">Gross premium (total)</span>
+          </div>
+          <p className="stat-card-value">
             {reports.grossPremiumTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}
           </p>
-          <p style={statLabelStyle}>Gross premium (total)</p>
         </div>
       </div>
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
-          gap: 24,
-        }}
-      >
-        <div style={cardStyle}>
-          <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 600 }}>Policies by provider</h3>
+      <div className="card-grid dashboard-charts">
+        <div className="card dashboard-chart-card">
+          <div className="dashboard-card-head">
+            <h3 className="card-title" style={{ margin: 0 }}>Policies by provider</h3>
+            <span className="text-muted">{reports.providerList.reduce((sum, [, c]) => sum + c, 0)} total</span>
+          </div>
           {reports.providerList.length === 0 ? (
-            <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: 14 }}>No policy data yet.</p>
+            <p className="text-muted" style={{ margin: 0 }}>No policy data yet.</p>
           ) : (
-            <div style={{ height: 280 }}>
+            <div style={{ height: 240 }}>
               <Bar
                 data={{
                   labels: reports.providerList.map(([name]) => name.length > 20 ? name.slice(0, 20) + '…' : name),
@@ -199,19 +247,23 @@ export default function Dashboard() {
                     },
                   },
                   scales: {
-                    y: { beginAtZero: true, ticks: { stepSize: 1 } },
+                    x: { grid: { display: false } },
+                    y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: 'rgba(148, 163, 184, 0.2)' } },
                   },
                 }}
               />
             </div>
           )}
         </div>
-        <div style={cardStyle}>
-          <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 600 }}>Policies by status</h3>
+        <div className="card dashboard-chart-card">
+          <div className="dashboard-card-head">
+            <h3 className="card-title" style={{ margin: 0 }}>Policies by status</h3>
+            <span className="text-muted">{reports.statusList.length} statuses</span>
+          </div>
           {reports.statusList.length === 0 ? (
-            <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: 14 }}>No policy data yet.</p>
+            <p className="text-muted" style={{ margin: 0 }}>No policy data yet.</p>
           ) : (
-            <div style={{ height: 280 }}>
+            <div style={{ height: 240 }}>
               <Doughnut
                 data={{
                   labels: reports.statusList.map(([name]) => name),
@@ -234,18 +286,6 @@ export default function Dashboard() {
           )}
         </div>
       </div>
-
-      {isAdmin && (
-        <div style={{ marginTop: 32 }}>
-          <button
-            type="button"
-            onClick={() => navigate('/data')}
-            className="btn btn-primary"
-          >
-            Open Data management
-          </button>
-        </div>
-      )}
     </div>
   )
 }

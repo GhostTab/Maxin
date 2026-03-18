@@ -3,35 +3,19 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { getCurrentSubmission, saveCurrent } from '../lib/submissions'
-import { exportCurrentToExcel } from '../lib/exportExcel'
 import { downloadFile } from '../lib/downloadFile'
 import { uploadFile } from '../lib/upload'
-import { SPREADSHEET_COLUMNS, UPLOAD_FIELD_KEYS } from '../config/spreadsheetColumns'
-import { FormSection } from '../components/RecordForm'
+import { SPREADSHEET_COLUMNS, UPLOAD_FIELD_KEYS, STATUS_OPTIONS } from '../config/spreadsheetColumns'
+import { FormWithSections, SearchInput, FileActionButtons } from '../components/RecordForm'
 
 const clientCols = SPREADSHEET_COLUMNS.Client_Info
 const policyCols = SPREADSHEET_COLUMNS.Policy_Info
-
-const TABS = [
-  { id: 'client', label: 'Client Information' },
-  { id: 'policy', label: 'Policy Information' },
-]
 
 function IconPlus({ size = 18 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
       <line x1="12" y1="5" x2="12" y2="19" />
       <line x1="5" y1="12" x2="19" y2="12" />
-    </svg>
-  )
-}
-
-function IconDownload({ size = 18 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-      <polyline points="7 10 12 15 17 10" />
-      <line x1="12" y1="15" x2="12" y2="3" />
     </svg>
   )
 }
@@ -43,6 +27,73 @@ function IconTrash({ size = 18 }) {
       <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
       <line x1="10" y1="11" x2="10" y2="17" />
       <line x1="14" y1="11" x2="14" y2="17" />
+    </svg>
+  )
+}
+
+function IconGrid({ size = 18 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <rect x="3" y="3" width="7" height="7" rx="1" />
+      <rect x="14" y="3" width="7" height="7" rx="1" />
+      <rect x="14" y="14" width="7" height="7" rx="1" />
+      <rect x="3" y="14" width="7" height="7" rx="1" />
+    </svg>
+  )
+}
+
+function IconList({ size = 18 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <line x1="8" y1="6" x2="21" y2="6" />
+      <line x1="8" y1="12" x2="21" y2="12" />
+      <line x1="8" y1="18" x2="21" y2="18" />
+      <line x1="3" y1="6" x2="3.01" y2="6" />
+      <line x1="3" y1="12" x2="3.01" y2="12" />
+      <line x1="3" y1="18" x2="3.01" y2="18" />
+    </svg>
+  )
+}
+
+function IconPhone({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+    </svg>
+  )
+}
+
+function IconMapPin({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+      <circle cx="12" cy="10" r="3" />
+    </svg>
+  )
+}
+
+function IconFileText({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+      <polyline points="14 2 14 8 20 8" />
+    </svg>
+  )
+}
+
+function IconUser({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  )
+}
+
+function IconShield({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
     </svg>
   )
 }
@@ -63,79 +114,261 @@ function handleDownloadFile(url, suggestedName, onError) {
   })
 }
 
+// ------------------------- VIEW SECTION ICONS -------------------------
+function IconUserCircle({ size = 20 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  )
+}
+
+function IconContact({ size = 20 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+      <path d="M15 10l-4 4" />
+      <path d="M9 10l4 4" transform="rotate(90 11 12)" />
+    </svg>
+  )
+}
+
+function IconHome({ size = 20 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      <polyline points="9 22 9 12 15 12 15 22" />
+    </svg>
+  )
+}
+
+function IconFile({ size = 20 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+      <polyline points="14 2 14 8 20 8" />
+    </svg>
+  )
+}
+
+function IconChevronDown({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  )
+}
+
+function IconDollar({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="1" x2="12" y2="23" />
+      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+    </svg>
+  )
+}
+
+// ------------------------- VIEW FIELD COMPONENT -------------------------
+function ViewField({ label, value, isEmpty }) {
+  return (
+    <div className="view-field">
+      <span className="view-field-label">{label}</span>
+      <span className={isEmpty ? 'view-field-value view-field-value-empty' : 'view-field-value'}>
+        {isEmpty ? '—' : value}
+      </span>
+    </div>
+  )
+}
+
+// ------------------------- VIEW SECTION COMPONENT -------------------------
+function ViewSection({ icon: Icon, title, children }) {
+  return (
+    <div className="view-section-card">
+      <div className="view-section-header">
+        <Icon className="view-section-icon" />
+        <h3 className="view-section-title">{title}</h3>
+      </div>
+      <div className="view-fields-grid">
+        {children}
+      </div>
+    </div>
+  )
+}
+
+// ------------------------- POLICY ACCORDION COMPONENT -------------------------
+function PolicyAccordion({ policy, policyIndex, clientName }) {
+  const [expanded, setExpanded] = useState(false)
+  const policyNumber = policy.col_3 || '—'
+  const provider = policy.col_4 || '—'
+  const status = policy.col_9 || '—'
+  const expiryDate = policy.col_8 || '—'
+
+  // Summary fields for the header
+  const sumInsured = policy.col_10 || '—'
+  const grossPremium = policy.col_11 || '—'
+
+  return (
+    <div className="accordion-item">
+      <button
+        type="button"
+        className="accordion-header"
+        onClick={() => setExpanded(!expanded)}
+        aria-expanded={expanded}
+      >
+        <div className="accordion-header-content">
+          <IconFile className="accordion-icon" size={18} />
+          <span>Policy {policyIndex + 1}</span>
+          <span style={{ fontFamily: 'monospace', fontSize: 13, color: 'var(--text-secondary)', marginLeft: 8 }}>
+            {policyNumber}
+          </span>
+          <div className="accordion-summary">
+            <span className="accordion-summary-item">{provider}</span>
+            <span className="accordion-summary-badge">{status}</span>
+          </div>
+        </div>
+        <IconChevronDown className={`accordion-chevron ${expanded ? 'expanded' : ''}`} />
+      </button>
+
+      <div className={`accordion-content ${expanded ? 'expanded' : ''}`}>
+        {/* Policy Details Section */}
+        <ViewSection icon={IconFile} title="Policy Details">
+          <ViewField label="Policy Number" value={policy.col_3} isEmpty={!policy.col_3} />
+          <ViewField label="Insured Name" value={policy.col_2} isEmpty={!policy.col_2} />
+          <ViewField label="Provider" value={policy.col_4} isEmpty={!policy.col_4} />
+          <ViewField label="Line" value={policy.col_5} isEmpty={!policy.col_5} />
+          <ViewField label="Issued Date" value={policy.col_6} isEmpty={!policy.col_6} />
+          <ViewField label="Inception Date" value={policy.col_7} isEmpty={!policy.col_7} />
+          <ViewField label="Expiry Date" value={policy.col_8} isEmpty={!policy.col_8} />
+          <ViewField label="Status" value={policy.col_9} isEmpty={!policy.col_9} />
+        </ViewSection>
+
+        {/* Financial Section */}
+        <ViewSection icon={IconDollar} title="Financial Information">
+          <ViewField label="Sum Insured" value={policy.col_10} isEmpty={!policy.col_10} />
+          <ViewField label="Gross Premium" value={policy.col_11} isEmpty={!policy.col_11} />
+          <ViewField label="Basic Premium" value={policy.col_12} isEmpty={!policy.col_12} />
+          <ViewField label="Commission" value={policy.col_13} isEmpty={!policy.col_13} />
+          <ViewField label="Withholding Tax" value={policy.col_14} isEmpty={!policy.col_14} />
+          <ViewField label="VAT" value={policy.col_15} isEmpty={!policy.col_15} />
+          <ViewField label="Discount" value={policy.col_16} isEmpty={!policy.col_16} />
+          <ViewField label="Net Commission" value={policy.col_17} isEmpty={!policy.col_17} />
+        </ViewSection>
+
+        {/* Upload Section */}
+        {isUploadUrl(policy.col_18) && (
+          <div style={{ marginTop: 16 }}>
+            <span className="view-field-label" style={{ display: 'block', marginBottom: 8 }}>Policy Copy</span>
+            <FileActionButtons
+              fileUrl={policy.col_18}
+              downloadFilename={`${safeFilenameSegment(policyNumber)}-PolicyCopy`}
+              onDownload={(url, name) => handleDownloadFile(url, name)}
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ------------------------- CLIENT DETAIL -------------------------
 function ClientDetail({ client, policies, clientIndex, policyIndices, onBack, onEdit }) {
   const clientName = client?.col_1 || '—'
 
   return (
-    <div className="page-content">
-      <div className="detail-toolbar">
-        <button type="button" onClick={onBack} className="btn btn-ghost">← Back to list</button>
-        <button type="button" onClick={onEdit} className="btn btn-primary">Edit</button>
-      </div>
-
-      <div className="card detail-card">
-        <h3 className="card-title">Client</h3>
-        <div className="detail-grid">
-          {clientCols.map(col => {
-            const val = client[col.data] ?? '—'
-            const isUpload = UPLOAD_FIELD_KEYS.Client_Info.includes(col.data)
-            return (
-              <div key={col.data} className="detail-field">
-                <span className="detail-label">{col.title}</span>
-                {isUpload && isUploadUrl(val) ? (
-                  <span className="detail-value" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-                    <a href={val} target="_blank" rel="noopener noreferrer" className="link-download">View</a>
-                    <button
-                      type="button"
-                      className="btn btn-ghost"
-                      style={{ padding: '4px 10px', fontSize: 13 }}
-                      onClick={() => handleDownloadFile(val, `${safeFilenameSegment(clientName)}-KYC`)}
-                    >
-                      Download file
-                    </button>
-                  </span>
-                ) : <span className="detail-value">{val}</span>}
-              </div>
-            )
-          })}
+    <div className="view-page-content">
+      {/* Toolbar */}
+      <div className="view-toolbar">
+        <div className="view-toolbar-left">
+          <button type="button" onClick={onBack} className="btn btn-secondary">← Back to list</button>
         </div>
+        <button type="button" onClick={onEdit} className="btn btn-primary">Edit client</button>
       </div>
 
-      <h3 className="section-title">Policies</h3>
-      {policies.length === 0 ? <p className="text-muted">No policies linked to this client.</p> : (
-        <div className="policy-cards">
-          {policies.map((policy, i) => (
-            <div key={i} className="card detail-card">
-              <div className="detail-grid">
-                {policyCols.map(col => {
-                  const val = policy[col.data] ?? '—'
-                  const isUpload = UPLOAD_FIELD_KEYS.Policy_Info.includes(col.data)
-                  const policyNo = policy?.col_3 || clientName
-                  return (
-                    <div key={col.data} className="detail-field">
-                      <span className="detail-label">{col.title}</span>
-                      {isUpload && isUploadUrl(val) ? (
-                        <span className="detail-value" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-                          <a href={val} target="_blank" rel="noopener noreferrer" className="link-download">View</a>
-                          <button
-                            type="button"
-                            className="btn btn-ghost"
-                            style={{ padding: '4px 10px', fontSize: 13 }}
-                            onClick={() => handleDownloadFile(val, `${safeFilenameSegment(policyNo)}-PolicyCopy`)}
-                          >
-                            Download file
-                          </button>
-                        </span>
-                      ) : <span className="detail-value">{val}</span>}
-                    </div>
-                  )
-                })}
+      {/* Page Title */}
+      <h1 className="page-heading" style={{ marginBottom: 8 }}>{clientName}</h1>
+      <p className="page-description" style={{ marginBottom: 32 }}>
+        Client details and linked policies
+      </p>
+
+      {/* Side-by-Side Layout */}
+      <div className="side-by-side-layout">
+        {/* Client Information Column */}
+        <div>
+          {/* Identity Section */}
+          <ViewSection icon={IconUserCircle} title="Identity Information">
+            <ViewField label="Full Name" value={client.col_1} isEmpty={!client.col_1} />
+            <ViewField label="First Name" value={client.col_2} isEmpty={!client.col_2} />
+            <ViewField label="Middle Name" value={client.col_3} isEmpty={!client.col_3} />
+            <ViewField label="Last Name" value={client.col_4} isEmpty={!client.col_4} />
+            <ViewField label="Suffix" value={client.col_5} isEmpty={!client.col_5} />
+            <ViewField label="TIN" value={client.col_6} isEmpty={!client.col_6} />
+            <ViewField label="Birthday" value={client.col_9} isEmpty={!client.col_9} />
+            <ViewField label="Birth Place" value={client.col_10} isEmpty={!client.col_10} />
+            <ViewField label="Nationality" value={client.col_11} isEmpty={!client.col_11} />
+            <ViewField label="Status" value={client.col_17} isEmpty={!client.col_17} />
+          </ViewSection>
+
+          {/* Contact Section */}
+          <ViewSection icon={IconContact} title="Contact Information">
+            <ViewField label="Email" value={client.col_7} isEmpty={!client.col_7} />
+            <ViewField label="Contact No" value={client.col_8} isEmpty={!client.col_8} />
+          </ViewSection>
+
+          {/* Address Section */}
+          <ViewSection icon={IconHome} title="Address">
+            <ViewField label="Country" value={client.col_12} isEmpty={!client.col_12} />
+            <ViewField label="City" value={client.col_13} isEmpty={!client.col_13} />
+            <ViewField label="Zip Code" value={client.col_14} isEmpty={!client.col_14} />
+            <ViewField label="Full Address" value={client.col_15} isEmpty={!client.col_15} />
+          </ViewSection>
+
+          {/* KYC Upload */}
+          {isUploadUrl(client.col_16) && (
+            <div className="view-section-card">
+              <div className="view-section-header">
+                <IconFile className="view-section-icon" />
+                <h3 className="view-section-title">KYC Document</h3>
               </div>
+              <FileActionButtons
+                fileUrl={client.col_16}
+                downloadFilename={`${safeFilenameSegment(clientName)}-KYC`}
+                onDownload={(url, name) => handleDownloadFile(url, name)}
+              />
             </div>
-          ))}
+          )}
         </div>
-      )}
+
+        {/* Policies Column */}
+        <div>
+          <div className="view-section-card" style={{ background: 'var(--primary-bg)', borderColor: 'var(--primary)' }}>
+            <div className="view-section-header" style={{ borderBottomColor: 'rgba(59, 130, 246, 0.2)' }}>
+              <IconShield size={20} className="view-section-icon" />
+              <h3 className="view-section-title">Linked Policies</h3>
+              <span style={{ marginLeft: 'auto', fontSize: 14, color: 'var(--primary)', fontWeight: 600 }}>
+                {policies.length}
+              </span>
+            </div>
+          </div>
+
+          {policies.length === 0 ? (
+            <p className="text-muted" style={{ textAlign: 'center', padding: 32 }}>
+              No policies linked to this client.
+            </p>
+          ) : (
+            <div className="accordion-container">
+              {policies.map((policy, i) => (
+                <PolicyAccordion
+                  key={i}
+                  policy={policy}
+                  policyIndex={i}
+                  clientName={clientName}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
@@ -146,39 +379,65 @@ function PolicyDetail({ policy, clientInfo, onBack }) {
     (policy.col_1 && c.col_1 === policy.col_1) ||
     (policy.col_2 && c.col_1 === policy.col_2)
   )?.col_1 || '—'
-  const policyNo = policy?.col_3 || clientName
+  const policyNo = policy?.col_3 || '—'
+  const provider = policy?.col_4 || '—'
+  const status = policy?.col_9 || '—'
 
   return (
-    <div className="page-content">
-      <div className="detail-toolbar">
-        <button type="button" className="btn btn-ghost" onClick={onBack}>← Back to policies</button>
-      </div>
-      <div className="card detail-card">
-        <h3 className="card-title">Policy for {clientName}</h3>
-        <div className="detail-grid">
-          {policyCols.map(col => {
-            const val = policy[col.data] ?? '—'
-            const isUpload = UPLOAD_FIELD_KEYS.Policy_Info.includes(col.data)
-            return (
-              <div key={col.data} className="detail-field">
-                <span className="detail-label">{col.title}</span>
-                {isUpload && isUploadUrl(val) ? (
-                  <span className="detail-value" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-                    <a href={val} target="_blank" rel="noopener noreferrer" className="link-download">View</a>
-                    <button
-                      type="button"
-                      className="btn btn-ghost"
-                      style={{ padding: '4px 10px', fontSize: 13 }}
-                      onClick={() => handleDownloadFile(val, `${safeFilenameSegment(policyNo)}-PolicyCopy`)}
-                    >
-                      Download file
-                    </button>
-                  </span>
-                ) : <span className="detail-value">{val}</span>}
-              </div>
-            )
-          })}
+    <div className="view-page-content">
+      {/* Toolbar */}
+      <div className="view-toolbar">
+        <div className="view-toolbar-left">
+          <button type="button" className="btn btn-secondary" onClick={onBack}>← Back to policies</button>
         </div>
+      </div>
+
+      {/* Page Title */}
+      <h1 className="page-heading" style={{ marginBottom: 8, fontFamily: 'monospace' }}>{policyNo}</h1>
+      <p className="page-description" style={{ marginBottom: 32 }}>
+        Policy details for {clientName}
+      </p>
+
+      {/* Policy Info Grid */}
+      <div style={{ maxWidth: 800 }}>
+        {/* Policy Details Section */}
+        <ViewSection icon={IconFile} title="Policy Details">
+          <ViewField label="Policy Number" value={policy.col_3} isEmpty={!policy.col_3} />
+          <ViewField label="Insured Name" value={policy.col_2} isEmpty={!policy.col_2} />
+          <ViewField label="Provider" value={policy.col_4} isEmpty={!policy.col_4} />
+          <ViewField label="Line" value={policy.col_5} isEmpty={!policy.col_5} />
+          <ViewField label="Issued Date" value={policy.col_6} isEmpty={!policy.col_6} />
+          <ViewField label="Inception Date" value={policy.col_7} isEmpty={!policy.col_7} />
+          <ViewField label="Expiry Date" value={policy.col_8} isEmpty={!policy.col_8} />
+          <ViewField label="Status" value={policy.col_9} isEmpty={!policy.col_9} />
+        </ViewSection>
+
+        {/* Financial Section */}
+        <ViewSection icon={IconDollar} title="Financial Information">
+          <ViewField label="Sum Insured" value={policy.col_10} isEmpty={!policy.col_10} />
+          <ViewField label="Gross Premium" value={policy.col_11} isEmpty={!policy.col_11} />
+          <ViewField label="Basic Premium" value={policy.col_12} isEmpty={!policy.col_12} />
+          <ViewField label="Commission" value={policy.col_13} isEmpty={!policy.col_13} />
+          <ViewField label="Withholding Tax" value={policy.col_14} isEmpty={!policy.col_14} />
+          <ViewField label="VAT" value={policy.col_15} isEmpty={!policy.col_15} />
+          <ViewField label="Discount" value={policy.col_16} isEmpty={!policy.col_16} />
+          <ViewField label="Net Commission" value={policy.col_17} isEmpty={!policy.col_17} />
+        </ViewSection>
+
+        {/* Policy Copy Upload */}
+        {isUploadUrl(policy.col_18) && (
+          <div className="view-section-card">
+            <div className="view-section-header">
+              <IconFile className="view-section-icon" />
+              <h3 className="view-section-title">Policy Copy</h3>
+            </div>
+            <FileActionButtons
+              fileUrl={policy.col_18}
+              downloadFilename={`${safeFilenameSegment(policyNo)}-PolicyCopy`}
+              onDownload={(url, name) => handleDownloadFile(url, name)}
+            />
+          </div>
+        )}
       </div>
     </div>
   )
@@ -199,13 +458,13 @@ async function buildRowWithUploads(cols, values, files, uploadKeys, bucket, supa
 
 // ------------------------- EDIT CLIENT VIEW -------------------------
 function EditClientView({ client, clientIndex, policies, policyIndices, clientInfo, policyInfo, onSave, onCancel }) {
-  const [activeTab, setActiveTab] = useState('client')
   const [clientValues, setClientValues] = useState({ ...client })
   const [policyValues, setPolicyValues] = useState(policies.map(p => ({ ...p })))
   const [clientFiles, setClientFiles] = useState({})
   const [policyFiles, setPolicyFiles] = useState(policies.map(() => ({})))
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [activePolicyTab, setActivePolicyTab] = useState(0)
 
   const setClient = (key, value) => setClientValues(prev => ({ ...prev, [key]: value }))
   const setClientFile = (key, file) => setClientFiles(prev => ({ ...prev, [key]: file }))
@@ -246,50 +505,66 @@ function EditClientView({ client, clientIndex, policies, policyIndices, clientIn
   }
 
   return (
-    <div className="page-content">
+    <div className="page-content page-content--form">
       <div className="detail-toolbar">
-        <button type="button" onClick={onCancel} className="btn btn-ghost">← Cancel</button>
+        <button type="button" onClick={onCancel} className="btn btn-secondary">Cancel</button>
       </div>
-      <h2 className="page-heading">Edit Client & Policies</h2>
+      <h2 className="page-heading">Edit Client</h2>
+      <p className="page-description">Update client information and linked policies. All fields are organized in sections for easy navigation.</p>
+
       {error && <div className="alert alert-error">{error}</div>}
+
       <form onSubmit={handleSubmit}>
-        <div className="add-record-tabs">
-          {TABS.map(({ id, label }) => (
-            <button key={id} type="button" className={`add-record-tab ${activeTab === id ? 'active' : ''}`} onClick={() => setActiveTab(id)}>
-              {label}
-            </button>
-          ))}
+        {/* Client Information Card - Same structure as Add Client */}
+        <div className="card">
+          <FormWithSections
+            sheetName="Client_Info"
+            values={clientValues}
+            onChange={setClient}
+            uploadFieldKeys={UPLOAD_FIELD_KEYS.Client_Info}
+            files={clientFiles}
+            onFileChange={setClientFile}
+          />
         </div>
 
-        <div className="add-record-panels">
-          {activeTab === 'client' && (
-            <FormSection
-              title="Client Information"
-              columns={clientCols}
-              values={clientValues}
-              onChange={setClient}
-              uploadFieldKeys={UPLOAD_FIELD_KEYS.Client_Info}
-              files={clientFiles}
-              onFileChange={setClientFile}
-            />
-          )}
-          {activeTab === 'policy' && policies.map((policy, i) => (
-            <FormSection
-              key={i}
-              title={`Policy ${i + 1}`}
-              columns={policyCols}
-              values={policyValues[i] || {}}
-              onChange={(key, value) => setPolicyAt(i, key, value)}
+        {/* Linked Policies - Section Tabs for Multiple Policies */}
+        {policies.length > 0 && (
+          <div className="card" style={{ marginTop: 16 }}>
+            <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '0.01em' }}>
+              Linked Policies
+            </h3>
+
+            {policies.length > 1 && (
+              <div className="add-record-tabs" style={{ marginBottom: 16 }}>
+                {policies.map((_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    className={`add-record-tab ${activePolicyTab === i ? 'active' : ''}`}
+                    onClick={() => setActivePolicyTab(i)}
+                  >
+                    Policy {i + 1}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <FormWithSections
+              sheetName="Policy_Info"
+              values={policyValues[activePolicyTab] || {}}
+              onChange={(key, value) => setPolicyAt(activePolicyTab, key, value)}
               uploadFieldKeys={UPLOAD_FIELD_KEYS.Policy_Info}
-              files={policyFiles[i] || {}}
-              onFileChange={(key, file) => setPolicyFileAt(i, key, file)}
+              files={policyFiles[activePolicyTab] || {}}
+              onFileChange={(key, file) => setPolicyFileAt(activePolicyTab, key, file)}
             />
-          ))}
-        </div>
+          </div>
+        )}
 
         <div className="form-actions">
-          <button type="submit" disabled={submitting} className="btn btn-primary">{submitting ? 'Saving…' : 'Save changes'}</button>
-          <button type="button" onClick={onCancel} className="btn btn-ghost">Cancel</button>
+          <button type="submit" disabled={submitting} className="btn btn-primary">
+            {submitting ? 'Saving…' : 'Update client'}
+          </button>
+          <button type="button" onClick={onCancel} className="btn btn-secondary">Cancel</button>
         </div>
       </form>
     </div>
@@ -307,11 +582,12 @@ export default function DataManagement() {
   const [selectedClientIndex, setSelectedClientIndex] = useState(null)
   const [selectedPolicyIndex, setSelectedPolicyIndex] = useState(null)
   const [editing, setEditing] = useState(false)
-  const [downloading, setDownloading] = useState(false)
   const [activeSection, setActiveSection] = useState('client') // client or policy
   const [selectedClientIndices, setSelectedClientIndices] = useState(() => new Set())
   const [selectedPolicyIndices, setSelectedPolicyIndices] = useState(() => new Set())
   const [deleting, setDeleting] = useState(false)
+  const [viewMode, setViewMode] = useState('tile') // 'tile' or 'list'
+  const [statusFilter, setStatusFilter] = useState('') // '' = All, or specific status
 
   useEffect(() => {
     if (!isAdmin) navigate('/dashboard', { replace: true })
@@ -335,18 +611,6 @@ export default function DataManagement() {
   useEffect(() => {
     load()
   }, [load])
-
-  const handleDownload = async () => {
-    setDownloading(true)
-    try {
-      const data = await getCurrentSubmission()
-      exportCurrentToExcel(data)
-    } catch (err) {
-      setError(err.message || 'Failed to download.')
-    } finally {
-      setDownloading(false)
-    }
-  }
 
   const clientInfo = current?.data?.client_info ?? []
   const policyInfo = current?.data?.policy_info ?? []
@@ -456,26 +720,39 @@ export default function DataManagement() {
   }
 
   const filterLower = filter.trim().toLowerCase()
+
+  // Status filter: client col_17, policy col_9
+  const byClientStatus = (c) => !statusFilter || (c.col_17 || '').trim() === statusFilter
+  const byPolicyStatus = (p) => !statusFilter || (p.col_9 || '').trim() === statusFilter
+
   let filteredClients, filteredClientIndices
+  const clientStatusFiltered = statusFilter ? clientInfo.filter(byClientStatus) : clientInfo
+  const clientStatusIndices = statusFilter ? clientInfo.map((c, i) => (byClientStatus(c) ? i : -1)).filter((i) => i >= 0) : clientInfo.map((_, i) => i)
+
   if (filterLower) {
     filteredClientIndices = []
-    filteredClients = clientInfo.filter((c, idx) => {
+    filteredClients = clientStatusFiltered.filter((c, idx) => {
+      const realIdx = clientStatusIndices[idx]
       const match =
         (c.col_1 && c.col_1.toLowerCase().includes(filterLower)) ||
         (c.col_7 && c.col_7.toLowerCase().includes(filterLower)) ||
         (c.col_8 && c.col_8.toLowerCase().includes(filterLower))
-      if (match) filteredClientIndices.push(idx)
+      if (match) filteredClientIndices.push(realIdx)
       return match
     })
   } else {
-    filteredClients = clientInfo
-    filteredClientIndices = clientInfo.map((_, i) => i)
+    filteredClients = clientStatusFiltered
+    filteredClientIndices = clientStatusIndices
   }
 
   let filteredPolicies, filteredPolicyIndices
+  const policyStatusFiltered = statusFilter ? policyInfo.filter(byPolicyStatus) : policyInfo
+  const policyStatusIndices = statusFilter ? policyInfo.map((p, i) => (byPolicyStatus(p) ? i : -1)).filter((i) => i >= 0) : policyInfo.map((_, i) => i)
+
   if (filterLower) {
     filteredPolicyIndices = []
-    filteredPolicies = policyInfo.filter((p, idx) => {
+    filteredPolicies = policyStatusFiltered.filter((p, idx) => {
+      const realIdx = policyStatusIndices[idx]
       const fullName = (p.col_1 || '').toLowerCase()
       const insuredName = (p.col_2 || '').toLowerCase()
       const policyNo = (p.col_3 || '').toLowerCase()
@@ -487,12 +764,12 @@ export default function DataManagement() {
         policyNo.includes(filterLower) ||
         provider.includes(filterLower) ||
         line.includes(filterLower)
-      if (match) filteredPolicyIndices.push(idx)
+      if (match) filteredPolicyIndices.push(realIdx)
       return match
     })
   } else {
-    filteredPolicies = policyInfo
-    filteredPolicyIndices = policyInfo.map((_, i) => i)
+    filteredPolicies = policyStatusFiltered
+    filteredPolicyIndices = policyStatusIndices
   }
 
   // ------------------ Editing / Detail Views ------------------
@@ -513,8 +790,8 @@ export default function DataManagement() {
         policyIndices={policyIndices}
         clientInfo={clientInfo}
         policyInfo={policyInfo}
-        onSave={() => { setEditing(false); load() }}
-        onCancel={() => setEditing(false)}
+        onSave={() => { setEditing(false); setSelectedClientIndex(null); load() }}
+        onCancel={() => { setEditing(false); setSelectedClientIndex(null) }}
       />
     )
   }
@@ -559,59 +836,51 @@ return (
       </div>
     )}
     <div className="page-header">
-      <h2 className="page-heading">Data Management</h2>
-      <div className="page-actions">
-        <input
-          type="text"
-          placeholder={activeSection === 'policy'
-            ? 'Filter by policy no, line, provider, insured name, full name…'
-            : 'Filter by name, email, or contact…'}
+      <h1 className="page-heading">Data management</h1>
+      <div className="page-actions page-actions--row">
+        <SearchInput
           value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          className="input-search"
+          onChange={setFilter}
+          placeholder={activeSection === 'policy'
+            ? 'Filter by policy no, provider, insured name...'
+            : 'Filter by name, email, contact...'}
+          ariaLabel="Filter records"
         />
-
         <button
           type="button"
           onClick={() => navigate('/add/client')}
           className="btn btn-primary"
           style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
         >
-          <IconPlus /> Add client
+          <IconPlus size={18} /> Add client
         </button>
         <button
           type="button"
           onClick={() => navigate('/add/policy')}
-          className="btn btn-ghost"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 8, border: '1px solid var(--maxin-light)' }}
-        >
-          <IconPlus /> Add policy
-        </button>
-
-        <button
-          type="button"
-          onClick={handleDownload}
-          disabled={downloading}
           className="btn btn-secondary"
           style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
         >
-          <IconDownload /> {downloading ? 'Preparing…' : 'Download data'}
+          <IconPlus size={18} /> Add policy
         </button>
-
+        <select
+          className="input input-select"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          aria-label="Filter by status"
+          style={{ maxWidth: 160 }}
+        >
+          <option value="">All statuses</option>
+          {STATUS_OPTIONS.map((opt) => (
+            <option key={opt} value={opt}>{opt}</option>
+          ))}
+        </select>
         {activeSection === 'client' && selectedClientIndices.size > 0 && (
           <button
             type="button"
             onClick={handleDeleteSelectedClients}
             disabled={deleting}
-            className="btn"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-              background: '#b91c1c',
-              color: '#fff',
-              border: 'none',
-            }}
+            className="btn btn-danger-solid"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
           >
             <IconTrash size={16} /> Delete selected ({selectedClientIndices.size})
           </button>
@@ -621,15 +890,8 @@ return (
             type="button"
             onClick={handleDeleteSelectedPolicies}
             disabled={deleting}
-            className="btn"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-              background: '#b91c1c',
-              color: '#fff',
-              border: 'none',
-            }}
+            className="btn btn-danger-solid"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
           >
             <IconTrash size={16} /> Delete selected ({selectedPolicyIndices.size})
           </button>
@@ -637,324 +899,341 @@ return (
       </div>
     </div>
 
-    {/* Section Toggle */}
-    <div className="section-toggle" style={{ marginBottom: 16 }}>
-      <button
-        type="button"
-        className={`btn ${
-          activeSection === 'client' ? 'btn-primary' : 'btn-ghost'
-        }`}
-        onClick={() => {
-          setActiveSection('client')
-          setSelectedPolicyIndices(new Set())
-        }}
-      >
-        Client Information
-      </button>
-
-      <button
-        type="button"
-        className={`btn ${
-          activeSection === 'policy' ? 'btn-primary' : 'btn-ghost'
-        }`}
-        onClick={() => {
-          setActiveSection('policy')
-          setSelectedClientIndices(new Set())
-        }}
-        style={{ marginLeft: 8 }}
-      >
-        Issued Policy Details
-      </button>
-    </div>
-
- {/* ================= CLIENT CARDS ================= */}
-{activeSection === 'client' ? (
-  filteredClients.length === 0 ? (
-    <p className="text-muted">No clients found.</p>
-  ) : (
-    <div
-      className="grid"
-      style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(4,1fr)',
-        gap: '16px',
-      }}
-    >
-      {filteredClients.map((client, i) => {
-        const realIndex = filteredClientIndices[i]
-        const isSelected = selectedClientIndices.has(realIndex)
-
-        const fullName = client.col_1 || '—'
-        const contactNo = client.col_8 || '—'     // adjust if needed
-        const fullAddress = client.col_15 || '—'   // adjust if needed
-        const status = client.col_17 || '—'
-
-        return (
-          <div
-            key={realIndex}
-            role="button"
-            tabIndex={0}
-            onClick={() => setSelectedClientIndex(i)}
-            onKeyDown={(e) =>
-              e.key === 'Enter' && setSelectedClientIndex(i)
-            }
-            className="card client-card"
-            style={{
-              cursor: 'pointer',
-              padding: 16,
-              position: 'relative',
-              display: 'flex',
-              flexDirection: 'column',
-              minHeight: 180,
-              outline: isSelected
-                ? '2px solid var(--maxin-light)'
-                : undefined,
-            }}
-          >
-            {/* Checkbox */}
-            <input
-              type="checkbox"
-              checked={isSelected}
-              onChange={() => toggleClientSelection(realIndex)}
-              onClick={(e) => e.stopPropagation()}
-              aria-label={`Select ${fullName}`}
-              style={{
-                position: 'absolute',
-                right: 42,
-                top: 12,
-                width: 18,
-                height: 18,
-                cursor: 'pointer',
-              }}
-            />
-
-            {/* Delete Button */}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation()
-                handleDeleteOneClient(realIndex)
-              }}
-              disabled={deleting}
-              aria-label="Delete client"
-              style={{
-                position: 'absolute',
-                right: 12,
-                top: 12,
-                padding: 4,
-                border: 'none',
-                background: 'transparent',
-                color: '#6b7280',
-                cursor: deleting ? 'not-allowed' : 'pointer',
-                borderRadius: 4,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = '#b91c1c'
-                e.currentTarget.style.background = '#fef2f2'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = '#6b7280'
-                e.currentTarget.style.background = 'transparent'
-              }}
-            >
-              <IconTrash size={18} />
-            </button>
-
-            {/* Contact Number (TOP) */}
-            <div
-              style={{
-                fontSize: '0.9rem',
-                color: '#444',
-                marginBottom: 6,
-                paddingRight: 60,
-              }}
-            >
-              {contactNo}
-            </div>
-
-            {/* Full Name */}
-            <div
-              style={{
-                fontWeight: 'bold',
-                fontSize: '1.25rem',
-                marginBottom: 0,
-                paddingRight: 60,
-              }}
-            >
-              {fullName}
-            </div>
-
-            {/* Full Address */}
-            <div
-              style={{
-                fontSize: '0.95rem',
-                color: '#555',
-                paddingRight: 60,
-              }}
-            >
-              {fullAddress}
-            </div>
-
-            {/* Status (BOTTOM) */}
-            <div
-              style={{
-                marginTop: 'auto',
-                marginTop: 16,
-                fontSize: '0.9rem',
-                fontWeight: 500,
-                color: '#555',
-              }}
-            >
-              {status}
-            </div>
-          </div>
-        )
-      })}
-    </div>
-  )
-) : (
-      /* ================= POLICY CARDS ================= */
-      <div
-        className="grid"
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4,1fr)',
-          gap: '16px',
-        }}
-      >
-        {filteredPolicies.map((policy, i) => {
-          const realIndex = filteredPolicyIndices[i]
-          const isSelected = selectedPolicyIndices.has(realIndex)
-          const insuredName = policy.col_2 || '—' // insured name
-          const insuranceLine = policy.col_5 || '—'
-          const policyNumber = policy.col_3 || '—'
-          const status = policy.col_9 || '—'
-          const provider = policy.col_4 || '—'
-
-          return (
-            <div
-              key={realIndex}
-              role="button"
-              tabIndex={0}
-              onClick={() => setSelectedPolicyIndex(i)}
-              onKeyDown={(e) =>
-                e.key === 'Enter' && setSelectedPolicyIndex(i)
-              }
-              className="card policy-card"
-              style={{
-                cursor: 'pointer',
-                padding: 16,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 0,
-                minHeight: 160,
-                position: 'relative',
-                outline: isSelected ? '2px solid var(--maxin-light)' : undefined,
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={isSelected}
-                onChange={() => togglePolicySelection(realIndex)}
-                onClick={(e) => e.stopPropagation()}
-                aria-label={`Select policy ${policyNumber}`}
-                style={{
-                  position: 'absolute',
-                  right: 42,
-                  top: 12,
-                  width: 18,
-                  height: 18,
-                  cursor: 'pointer',
-                  zIndex: 1,
-                }}
-              />
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleDeleteOnePolicy(realIndex)
-                }}
-                disabled={deleting}
-                aria-label="Delete policy"
-                style={{
-                  position: 'absolute',
-                  right: 12,
-                  top: 12,
-                  padding: 4,
-                  border: 'none',
-                  background: 'transparent',
-                  color: '#6b7280',
-                  cursor: deleting ? 'not-allowed' : 'pointer',
-                  borderRadius: 4,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  zIndex: 1,
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = '#b91c1c'
-                  e.currentTarget.style.background = '#fef2f2'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = '#6b7280'
-                  e.currentTarget.style.background = 'transparent'
-                }}
-              >
-                <IconTrash size={18} />
-              </button>
-              {/* Insurance Line (BOLD) */}
-              <div
-                style={{
-                  fontWeight: 'bold',
-                  fontSize: '1.1rem',
-                  marginBottom: 0,
-                  paddingLeft: 0,
-                  paddingRight: 36,
-                }}
-              >
-                {insuranceLine}
-              </div>
-
-              {/* Policy Number */}
-              <div style={{ color: '#444' }}>
-                {policyNumber}
-              </div>
-
-              {/* Insured Name (BOLD) */}
-              <div
-                style={{
-                  fontWeight: 'bold',
-                  fontSize: '1.2rem',
-                  marginTop: 12,
-                  marginBottom: 0,
-                }}
-              >
-                {insuredName}
-              </div>
-
-              {/* Status */}
-              <div style={{ color: '#555', marginBottom: 16, }}>
-                {status}
-              </div>
-
-              {/* Provider (Bottom) */}
-              <div
-                style={{
-                  marginTop: 'auto',
-                  color: '#666',
-                  fontSize: '0.9rem',
-                }}
-              >
-                {provider}
-              </div>
-            </div>
-          )
-        })}
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
+      <div className="section-toggle">
+        <button
+          type="button"
+          className={activeSection === 'client' ? 'btn btn-primary' : 'btn btn-secondary'}
+          onClick={() => {
+            setActiveSection('client')
+            setSelectedPolicyIndices(new Set())
+          }}
+        >
+          Client Information
+        </button>
+        <button
+          type="button"
+          className={activeSection === 'policy' ? 'btn btn-primary' : 'btn btn-secondary'}
+          onClick={() => {
+            setActiveSection('policy')
+            setSelectedClientIndices(new Set())
+          }}
+        >
+          Issued Policy Details
+        </button>
       </div>
+
+      {/* View Toggle */}
+      <div className="view-toggle">
+        <button
+          type="button"
+          className={`view-toggle-btn ${viewMode === 'tile' ? 'active' : ''}`}
+          onClick={() => setViewMode('tile')}
+          aria-label="Tile view"
+          title="Tile view"
+        >
+          <IconGrid size={16} />
+          <span>Grid</span>
+        </button>
+        <button
+          type="button"
+          className={`view-toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
+          onClick={() => setViewMode('list')}
+          aria-label="List view"
+          title="List view"
+        >
+          <IconList size={16} />
+          <span>List</span>
+        </button>
+      </div>
+    </div>
+
+    {/* ================= CLIENT VIEW ================= */}
+    {activeSection === 'client' ? (
+      filteredClients.length === 0 ? (
+        <p className="text-muted">No clients found.</p>
+      ) : viewMode === 'tile' ? (
+        /* ===== TILE VIEW - CLIENTS ===== */
+        <div className="card-grid">
+          {filteredClients.map((client, i) => {
+            const realIndex = filteredClientIndices[i]
+            const isSelected = selectedClientIndices.has(realIndex)
+            const fullName = client.col_1 || '—'
+            const email = client.col_7 || '—'
+            const contactNo = client.col_8 || '—'
+            const fullAddress = client.col_15 || '—'
+            const status = client.col_17 || '—'
+
+            return (
+              <div
+                key={realIndex}
+                className="card client-card dm-card"
+                style={{ outline: isSelected ? '2px solid var(--primary)' : undefined }}
+              >
+                <div className="dm-card-header">
+                  <div style={{ minWidth: 0 }}>
+                    <h3 className="dm-card-title">{fullName}</h3>
+                    <p className="dm-card-subtitle">{email}</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => toggleClientSelection(realIndex)}
+                    aria-label={`Select ${fullName}`}
+                    className="dm-card-checkbox"
+                  />
+                </div>
+                <div className="dm-card-meta">
+                  <div className="dm-card-meta-row">
+                    <IconPhone className="dm-card-meta-icon" />
+                    <span>{contactNo}</span>
+                  </div>
+                  <div className="dm-card-meta-row">
+                    <IconMapPin className="dm-card-meta-icon" />
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fullAddress}</span>
+                  </div>
+                  <div className="dm-card-meta-row" style={{ marginTop: 8 }}>
+                    <span className={`status-badge ${status === 'Active' ? 'status-badge--active' : 'status-badge--neutral'}`}>
+                      {status === 'Active' && <span className="status-dot status-dot--active" />}
+                      {status || '—'}
+                    </span>
+                  </div>
+                </div>
+                <div className="dm-card-actions">
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => setSelectedClientIndex(i)}
+                  >
+                    View
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => { setSelectedClientIndex(i); setEditing(true) }}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-danger"
+                    onClick={() => handleDeleteOneClient(realIndex)}
+                    disabled={deleting}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      ) : (
+        /* ===== LIST VIEW - CLIENTS ===== */
+        <div className="list-view">
+          {filteredClients.map((client, i) => {
+            const realIndex = filteredClientIndices[i]
+            const isSelected = selectedClientIndices.has(realIndex)
+            const fullName = client.col_1 || '—'
+            const email = client.col_7 || ''
+            const contactNo = client.col_8 || '—'
+            const status = client.col_17 || '—'
+
+            return (
+              <div
+                key={realIndex}
+                className={`dm-list-item ${isSelected ? 'selected' : ''}`}
+                style={{ outline: isSelected ? '2px solid var(--primary)' : undefined }}
+              >
+                <input
+                  type="checkbox"
+                  checked={isSelected}
+                  onChange={() => toggleClientSelection(realIndex)}
+                  aria-label={`Select ${fullName}`}
+                  className="dm-list-checkbox"
+                />
+                <div className="dm-list-content">
+                  <div className="dm-list-main">
+                    <h3 className="dm-list-title">{fullName}</h3>
+                    {email && <p className="dm-list-subtitle">{email}</p>}
+                  </div>
+                  <div className="dm-list-meta">
+                    <IconPhone size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} />
+                    {contactNo}
+                  </div>
+                  <div className="dm-list-meta">
+                    <span className={`status-badge ${status === 'Active' ? 'status-badge--active' : 'status-badge--neutral'}`}>
+                      {status === 'Active' && <span className="status-dot status-dot--active" />}
+                      {status || '—'}
+                    </span>
+                  </div>
+                  <div className="dm-list-actions">
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={() => setSelectedClientIndex(i)}
+                    >
+                      View
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => { setSelectedClientIndex(i); setEditing(true) }}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-danger"
+                      onClick={() => handleDeleteOneClient(realIndex)}
+                      disabled={deleting}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )
+    ) : (
+      /* ================= POLICY VIEW ================= */
+      filteredPolicies.length === 0 ? (
+        <p className="text-muted">No policies found.</p>
+      ) : viewMode === 'tile' ? (
+        /* ===== TILE VIEW - POLICIES ===== */
+        <div className="card-grid">
+          {filteredPolicies.map((policy, i) => {
+            const realIndex = filteredPolicyIndices[i]
+            const isSelected = selectedPolicyIndices.has(realIndex)
+            const insuredName = policy.col_2 || '—'
+            const insuranceLine = policy.col_5 || '—'
+            const policyNumber = policy.col_3 || '—'
+            const status = policy.col_9 || '—'
+            const provider = policy.col_4 || '—'
+
+            return (
+              <div
+                key={realIndex}
+                className="card policy-card dm-card"
+                style={{ outline: isSelected ? '2px solid var(--primary)' : undefined }}
+              >
+                <div className="dm-card-header">
+                  <div style={{ minWidth: 0 }}>
+                    <h3 className="dm-card-title" style={{ fontFamily: 'monospace', fontSize: 15 }}>{policyNumber}</h3>
+                    <p className="dm-card-subtitle">{provider}</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => togglePolicySelection(realIndex)}
+                    aria-label={`Select policy ${policyNumber}`}
+                    className="dm-card-checkbox"
+                  />
+                </div>
+                <div className="dm-card-meta">
+                  <div className="dm-card-meta-row">
+                    <IconUser className="dm-card-meta-icon" />
+                    <span>{insuredName}</span>
+                  </div>
+                  <div className="dm-card-meta-row">
+                    <IconShield className="dm-card-meta-icon" />
+                    <span>{insuranceLine || '—'}</span>
+                  </div>
+                  <div className="dm-card-meta-row" style={{ marginTop: 8 }}>
+                    <span className={`status-badge ${status === 'Active' ? 'status-badge--active' : status === 'Expired' ? 'status-badge--inactive' : 'status-badge--neutral'}`}>
+                      {status === 'Active' && <span className="status-dot status-dot--active" />}
+                      {status === 'Expired' && <span className="status-dot status-dot--inactive" />}
+                      {status || '—'}
+                    </span>
+                  </div>
+                </div>
+                <div className="dm-card-actions">
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => setSelectedPolicyIndex(i)}
+                  >
+                    View
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-danger"
+                    onClick={() => handleDeleteOnePolicy(realIndex)}
+                    disabled={deleting}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      ) : (
+        /* ===== LIST VIEW - POLICIES ===== */
+        <div className="list-view">
+          {filteredPolicies.map((policy, i) => {
+            const realIndex = filteredPolicyIndices[i]
+            const isSelected = selectedPolicyIndices.has(realIndex)
+            const insuredName = policy.col_2 || '—'
+            const insuranceLine = policy.col_5 || '—'
+            const policyNumber = policy.col_3 || '—'
+            const status = policy.col_9 || '—'
+            const provider = policy.col_4 || '—'
+
+            return (
+              <div
+                key={realIndex}
+                className={`dm-list-item ${isSelected ? 'selected' : ''}`}
+                style={{ outline: isSelected ? '2px solid var(--primary)' : undefined }}
+              >
+                <input
+                  type="checkbox"
+                  checked={isSelected}
+                  onChange={() => togglePolicySelection(realIndex)}
+                  aria-label={`Select policy ${policyNumber}`}
+                  className="dm-list-checkbox"
+                />
+                <div className="dm-list-content">
+                  <div className="dm-list-main">
+                    <h3 className="dm-list-title" style={{ fontFamily: 'monospace' }}>{policyNumber}</h3>
+                    <p className="dm-list-subtitle">{provider} · {insuranceLine || '—'}</p>
+                  </div>
+                  <div className="dm-list-meta">
+                    <IconUser size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} />
+                    {insuredName}
+                  </div>
+                  <div className="dm-list-meta">
+                    <span className={`status-badge ${status === 'Active' ? 'status-badge--active' : status === 'Expired' ? 'status-badge--inactive' : 'status-badge--neutral'}`}>
+                      {status === 'Active' && <span className="status-dot status-dot--active" />}
+                      {status === 'Expired' && <span className="status-dot status-dot--inactive" />}
+                      {status || '—'}
+                    </span>
+                  </div>
+                  <div className="dm-list-actions">
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={() => setSelectedPolicyIndex(i)}
+                    >
+                      View
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-danger"
+                      onClick={() => handleDeleteOnePolicy(realIndex)}
+                      disabled={deleting}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )
     )}
   </div>
-)
+  )
 }

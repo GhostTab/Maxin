@@ -69,6 +69,41 @@ export default function UserManagement() {
     }
   }
 
+  const getAccessStatus = (u) => {
+    const untilRaw = u?.banned_until
+    const banned = isBanned(u)
+    if (!banned) return { key: 'active', label: 'Active', badge: 'active', hint: '' }
+
+    let untilDate = null
+    try {
+      untilDate = untilRaw ? new Date(untilRaw) : null
+    } catch {
+      untilDate = null
+    }
+
+    // We use a very long ban duration ("876000h" ≈ 100 years) for deactivation.
+    // Treat far-future dates as "Deactivated" (admin-controlled) vs shorter bans as "Banned".
+    const now = new Date()
+    const yearsOut = untilDate ? (untilDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24 * 365) : Number.POSITIVE_INFINITY
+    const isDeactivated = yearsOut > 10
+
+    if (isDeactivated) {
+      return {
+        key: 'deactivated',
+        label: 'Deactivated',
+        badge: 'inactive',
+        hint: untilDate ? `Access blocked until ${untilDate.toLocaleDateString()}` : 'Access blocked',
+      }
+    }
+
+    return {
+      key: 'banned',
+      label: 'Banned',
+      badge: 'inactive',
+      hint: untilDate ? `Banned until ${untilDate.toLocaleDateString()}` : 'Banned',
+    }
+  }
+
   if (!isAdmin) return null
 
   return (
@@ -82,59 +117,83 @@ export default function UserManagement() {
         </div>
       </div>
 
+      {error && (
+        <div className="alert alert-error" role="alert">
+          {error}
+        </div>
+      )}
+
       <div className="card">
-        <h2 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 600 }}>Users</h2>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+          <h2 className="card-title" style={{ margin: 0 }}>Users</h2>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => loadUsers()}
+            disabled={loading}
+            aria-label="Refresh user list"
+          >
+            {loading ? 'Loading…' : 'Refresh'}
+          </button>
+        </div>
+
         {loading ? (
-          <p style={{ color: 'var(--text-muted)' }}>Loading…</p>
-        ) : error ? (
-          <p style={{ color: '#c53030' }}>{error}</p>
+          <p className="loading-state">Loading…</p>
         ) : users.length === 0 ? (
-          <p style={{ color: 'var(--text-muted)' }}>No users yet. Add a client from Add Client to create an account automatically.</p>
+          <p className="empty-state">No users yet. Add a client from Add Client to create an account automatically.</p>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div className="data-table-wrap">
+            <table className="data-table" role="grid" aria-label="User list">
               <thead>
-                <tr style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                  <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Email</th>
-                  <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Role</th>
-                  <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Status</th>
-                  <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Created</th>
-                  <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Actions</th>
+                <tr>
+                  <th scope="col">Email</th>
+                  <th scope="col">Role</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Created</th>
+                  <th scope="col">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {users.map((u) => {
-                  const banned = isBanned(u)
+                  const status = getAccessStatus(u)
                   const isCurrentUser = currentUser?.id === u.id
                   return (
-                    <tr key={u.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                      <td style={{ padding: '10px 12px' }}>{u.email || '—'}</td>
-                      <td style={{ padding: '10px 12px' }}>{u.role === 'admin' ? 'Admin' : 'Client'}</td>
-                      <td style={{ padding: '10px 12px', color: 'var(--text-muted)', fontSize: 14 }}>
-                        {banned ? 'Deactivated' : 'Active'}
+                    <tr key={u.id}>
+                      <td>{u.email || '—'}</td>
+                      <td>{u.role === 'admin' ? 'Admin' : 'Client'}</td>
+                      <td>
+                        <span
+                          className={`status-badge status-badge--${status.badge}`}
+                          title={status.hint || status.label}
+                        >
+                          <span className={`status-dot status-dot--${status.badge}`} aria-hidden />
+                          {status.label}
+                        </span>
                       </td>
-                      <td style={{ padding: '10px 12px', color: 'var(--text-muted)', fontSize: 14 }}>
+                      <td className="text-muted">
                         {u.created_at ? new Date(u.created_at).toLocaleDateString() : '—'}
                       </td>
-                      <td style={{ padding: '10px 12px' }}>
+                      <td>
                         {!isCurrentUser && u.role !== 'admin' && (
-                          banned ? (
+                          status.key !== 'active' ? (
                             <button
                               type="button"
-                              className="btn btn-ghost"
+                              className="btn btn-secondary"
                               disabled={actionLoadingId === u.id}
                               onClick={() => handleReactivate(u.id)}
+                              aria-label={`Reactivate ${u.email || 'user'}`}
                             >
-                              {actionLoadingId === u.id ? '…' : 'Reactivate'}
+                              {actionLoadingId === u.id ? 'Reactivating…' : 'Reactivate'}
                             </button>
                           ) : (
                             <button
                               type="button"
-                              className="btn btn-ghost"
+                              className="btn btn-danger"
                               disabled={actionLoadingId === u.id}
                               onClick={() => handleDeactivate(u.id)}
+                              aria-label={`Deactivate ${u.email || 'user'}`}
                             >
-                              {actionLoadingId === u.id ? '…' : 'Deactivate'}
+                              {actionLoadingId === u.id ? 'Deactivating…' : 'Deactivate'}
                             </button>
                           )
                         )}

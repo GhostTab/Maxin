@@ -1,40 +1,19 @@
-import { useRef, useState, useCallback, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { HotTable } from '@handsontable/react'
-import { registerAllModules } from 'handsontable/registry'
-import 'handsontable/dist/handsontable.full.min.css'
-import { SHEET_NAMES, getHandsontableColumns } from '../config/spreadsheetColumns'
+import 'handsontable/dist/handsontable.min.css'
 import { getCurrentSubmission } from '../lib/submissions'
 import { useAuth } from '../context/AuthContext'
 import { filterDataByClientEmail } from '../lib/filterClientData'
-
-registerAllModules()
-
-function getGridDataFromHot(hotRef, columns) {
-  const hot = hotRef?.current?.hotInstance
-  if (!hot) return []
-  const rowCount = hot.countRows()
-  const data = []
-  for (let r = 0; r < rowCount; r++) {
-    const row = {}
-    columns.forEach((col, c) => {
-      row[col.data] = hot.getDataAtCell(r, c) ?? ''
-    })
-    data.push(row)
-  }
-  return data.filter((row) => Object.values(row).some((v) => v !== '' && v != null))
-}
+import { getHandsontableColumns } from '../config/spreadsheetColumns'
+import { SHEET_NAMES } from '../config/spreadsheetColumns'
+import { exportCurrentToExcel } from '../lib/exportExcel'
 
 export default function Spreadsheet() {
   const { user, isAdmin } = useAuth()
-  const hotRefClient = useRef(null)
-  const hotRefPolicy = useRef(null)
   const [activeTab, setActiveTab] = useState(SHEET_NAMES[0])
   const [currentData, setCurrentData] = useState(null)
-  const [clientGridData, setClientGridData] = useState([])
-  const [policyGridData, setPolicyGridData] = useState([])
-
-  const clientColumns = getHandsontableColumns('Client_Info')
-  const policyColumns = getHandsontableColumns('Policy_Info')
+  const [loading, setLoading] = useState(true)
+  const [downloading, setDownloading] = useState(false)
 
   useEffect(() => {
     let mounted = true
@@ -46,102 +25,125 @@ export default function Spreadsheet() {
         setCurrentData(toSet)
       })
       .catch(() => setCurrentData(null))
+      .finally(() => { if (mounted) setLoading(false) })
     return () => { mounted = false }
   }, [isAdmin, user?.email])
 
-  useEffect(() => {
-    if (currentData == null) return
-    const clientRows = Array.isArray(currentData.client_info) ? currentData.client_info : []
-    const policyRows = Array.isArray(currentData.policy_info) ? currentData.policy_info : []
-    setClientGridData(clientRows.length ? clientRows : [{}])
-    setPolicyGridData(policyRows.length ? policyRows : [{}])
-  }, [currentData])
+  const clientInfo = currentData?.client_info ?? []
+  const policyInfo = currentData?.policy_info ?? []
 
-  const switchTab = useCallback((name) => {
-    if (name === activeTab) return
-    if (activeTab === 'Client_Info') {
-      const rows = getGridDataFromHot(hotRefClient, clientColumns)
-      setClientGridData(rows.length ? rows : [{}])
-    } else {
-      const rows = getGridDataFromHot(hotRefPolicy, policyColumns)
-      setPolicyGridData(rows.length ? rows : [{}])
+  const handleDownload = async () => {
+    setDownloading(true)
+    try {
+      const raw = await getCurrentSubmission()
+      const payload = !isAdmin
+        ? { ...raw, data: filterDataByClientEmail(raw?.data || {}, user?.email) }
+        : raw
+      await exportCurrentToExcel(payload)
+    } catch (err) {
+      alert(err.message || 'Failed to download.')
+    } finally {
+      setDownloading(false)
     }
-    setActiveTab(name)
-  }, [activeTab, clientColumns, policyColumns])
+  }
+
+  const clientColumns = getHandsontableColumns('Client_Info')
+  const policyColumns = getHandsontableColumns('Policy_Info')
+
+  if (loading) {
+    return (
+      <div className="page-content">
+        <h1 className="page-heading">Spreadsheet</h1>
+        <p className="page-description">View clients and policies in a spreadsheet.</p>
+        <div className="loading-state">Loading…</div>
+      </div>
+    )
+  }
 
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
-        <h2 style={{ margin: 0, fontSize: 20 }}>Data view (read-only)</h2>
-      </div>
-
-      <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
-        {SHEET_NAMES.map((name) => (
-          <button
-            key={name}
-            type="button"
-            onClick={() => switchTab(name)}
-            style={{
-              padding: '8px 16px',
-              border: '1px solid var(--maxin-light)',
-              borderRadius: 8,
-              background: activeTab === name ? 'var(--maxin-dark)' : 'var(--maxin-white)',
-              color: activeTab === name ? 'var(--maxin-white)' : 'var(--maxin-dark)',
-              fontWeight: activeTab === name ? 600 : 400,
-              cursor: 'pointer',
-            }}
-          >
-            {name.replace('_', ' ')}
-          </button>
-        ))}
-      </div>
-
-      {activeTab === 'Client_Info' && (
-        <div className="hot-container">
-          <HotTable
-            ref={hotRefClient}
-            key="client"
-            data={clientGridData.length ? clientGridData : [{}]}
-            columns={clientColumns}
-            colHeaders={clientColumns.map((c) => c.title)}
-            rowHeaders={true}
-            licenseKey="non-commercial-and-evaluation"
-            minRows={10}
-            minCols={clientColumns.length}
-            contextMenu={true}
-            manualColumnResize={true}
-            autoWrapRow={true}
-            autoWrapCol={true}
-            wordWrap={false}
-            autoRowSize={true}
-            autoColumnSize={true}
-            minColWidth={60}
-            readOnly={true}
-          />
+    <div className="page-content">
+      <div className="page-header" style={{ marginBottom: 28, flexWrap: 'wrap', gap: 20 }}>
+        <div>
+          <h1 className="page-heading">Spreadsheet</h1>
+          <p className="page-description">View and download client and policy data in a spreadsheet format.</p>
         </div>
-      )}
-      {activeTab === 'Policy_Info' && (
-        <div className="hot-container">
-          <HotTable
-            ref={hotRefPolicy}
-            key="policy"
-            data={policyGridData.length ? policyGridData : [{}]}
-            columns={policyColumns}
-            colHeaders={policyColumns.map((c) => c.title)}
-            rowHeaders={true}
-            licenseKey="non-commercial-and-evaluation"
-            minRows={10}
-            minCols={policyColumns.length}
-            contextMenu={true}
-            manualColumnResize={true}
-            autoWrapRow={true}
-            autoWrapCol={true}
-            wordWrap={false}
-            autoRowSize={true}
-            autoColumnSize={true}
-            minColWidth={60}
-            readOnly={true}
-          />
+        <div className="spreadsheet-toolbar">
+          <div className="section-toggle" style={{ margin: 0 }}>
+            {SHEET_NAMES.map((name) => (
+              <button
+                key={name}
+                type="button"
+                className={activeTab === name ? 'btn btn-primary' : 'btn btn-secondary'}
+                onClick={() => setActiveTab(name)}
+              >
+                {name.replace('_', ' ')}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={handleDownload}
+            disabled={downloading}
+            className="btn btn-primary spreadsheet-download-btn"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            <span>{downloading ? 'Preparing…' : 'Download Excel'}</span>
+          </button>
+        </div>
+      </div>
+
+      {(activeTab === 'Client_Info' ? clientInfo.length === 0 : policyInfo.length === 0) ? (
+        <div className="spreadsheet-card">
+          <div className="spreadsheet-card-header">
+            <div>
+              <h2 className="spreadsheet-card-title">{activeTab.replace('_', ' ')}</h2>
+              <p className="spreadsheet-card-meta">
+                {activeTab === 'Client_Info' ? 'No clients yet.' : 'No policies yet.'}
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="spreadsheet-card">
+          <div className="spreadsheet-card-header">
+            <div>
+              <h2 className="spreadsheet-card-title">{activeTab.replace('_', ' ')}</h2>
+              <p className="spreadsheet-card-meta">
+                {(activeTab === 'Client_Info' ? clientInfo.length : policyInfo.length).toLocaleString()} row(s)
+              </p>
+            </div>
+          </div>
+          <div className="hot-container">
+            {activeTab === 'Client_Info' ? (
+              <HotTable
+                data={clientInfo}
+                columns={clientColumns}
+                colHeaders={clientColumns.map((c) => c.title)}
+                rowHeaders={true}
+                readOnly={true}
+                licenseKey="non-commercial-and-evaluation"
+                height="480"
+                stretchH="all"
+                className="modern-handsontable"
+              />
+            ) : (
+              <HotTable
+                data={policyInfo}
+                columns={policyColumns}
+                colHeaders={policyColumns.map((c) => c.title)}
+                rowHeaders={true}
+                readOnly={true}
+                licenseKey="non-commercial-and-evaluation"
+                height="480"
+                stretchH="all"
+                className="modern-handsontable"
+              />
+            )}
+          </div>
         </div>
       )}
     </div>
