@@ -11,11 +11,27 @@ import DataManagement from './pages/DataManagement'
 import Dashboard from './pages/Dashboard'
 import Layout from './components/Layout'
 import UserManagement from './pages/UserManagement'
+import ClientHome from './pages/ClientHome'
 
 function ProtectedRoute({ children }) {
   const { session, loading } = useAuth()
   if (loading) return <div style={{ padding: 24, textAlign: 'center' }}>Loading...</div>
   if (!session) return <Navigate to="/login" replace />
+  return children
+}
+
+function IndexRedirect() {
+  const { loading, session, isAdmin } = useAuth()
+  if (loading) return <div style={{ padding: 24, textAlign: 'center' }}>Loading...</div>
+  if (!session) return <Navigate to="/login" replace />
+  return <Navigate to={isAdmin ? '/dashboard' : '/client'} replace />
+}
+
+function AdminRoute({ children }) {
+  const { loading, session, isAdmin } = useAuth()
+  if (loading) return <div style={{ padding: 24, textAlign: 'center' }}>Loading...</div>
+  if (!session) return <Navigate to="/login" replace />
+  if (!isAdmin) return <Navigate to="/client" replace />
   return children
 }
 
@@ -36,14 +52,68 @@ export default function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<Navigate to="/dashboard" replace />} />
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="sheet" element={<Spreadsheet />} />
-          <Route path="add/client" element={<AddClient />} />
-          <Route path="add/policy" element={<AddPolicy />} />
-          <Route path="add" element={<Navigate to="/add/client" replace />} />
-          <Route path="data" element={<DataManagement />} />
-          <Route path="users" element={<UserManagement />} />
+          <Route index element={<IndexRedirect />} />
+
+          {/* Client UI */}
+          <Route path="client" element={<ClientHome />} />
+
+          {/* Admin UI */}
+          <Route
+            path="dashboard"
+            element={
+              <AdminRoute>
+                <Dashboard />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="sheet"
+            element={
+              <AdminRoute>
+                <Spreadsheet />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="add/client"
+            element={
+              <AdminRoute>
+                <AddClient />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="add/policy"
+            element={
+              <AdminRoute>
+                <AddPolicy />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="add"
+            element={
+              <AdminRoute>
+                <Navigate to="/add/client" replace />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="data"
+            element={
+              <AdminRoute>
+                <DataManagement />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="users"
+            element={
+              <AdminRoute>
+                <UserManagement />
+              </AdminRoute>
+            }
+          />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

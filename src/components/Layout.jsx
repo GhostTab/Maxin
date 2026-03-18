@@ -80,6 +80,48 @@ export default function Layout() {
   const navLinkClassName = ({ isActive }) =>
     `sidebar-nav-link${isActive ? ' active' : ''}`
 
+  /* Client UI: no sidebar, just header with logo + logout */
+  if (!isAdmin) {
+    return (
+      <div className="app-shell app-shell--client">
+        <main className="app-main">
+          <header className="client-header">
+            <div className="client-header-logo">
+              {logoError ? (
+                <svg
+                  className="client-header-logo-svg"
+                  viewBox="0 0 120 36"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-label="MAXIN Insurance"
+                >
+                  <text x="0" y="26" fill="var(--text-primary)" fontSize="22" fontWeight="700" letterSpacing="0.08em" fontFamily="inherit">MAXIN</text>
+                </svg>
+              ) : (
+                <img
+                  src={logo}
+                  alt="MAXIN Insurance"
+                  onError={() => setLogoError(true)}
+                  className="client-header-logo-img"
+                />
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="btn btn-secondary client-header-logout"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 16px' }}
+            >
+              {iconLogout}
+              <span>Log out</span>
+            </button>
+          </header>
+          <Outlet />
+        </main>
+      </div>
+    )
+  }
+
   return (
     <div className="app-shell">
       {/* Mobile overlay */}
@@ -135,34 +177,26 @@ export default function Layout() {
             {iconDashboard}
             <span>Dashboard</span>
           </NavLink>
-          {isAdmin && (
-            <>
-              <NavLink to="/add/client" className={navLinkClassName} onClick={() => setSidebarOpen(false)}>
-                {iconAddClient}
-                <span>Add client</span>
-              </NavLink>
-              <NavLink to="/add/policy" className={navLinkClassName} onClick={() => setSidebarOpen(false)}>
-                {iconAddPolicy}
-                <span>Add policy</span>
-              </NavLink>
-            </>
-          )}
+          <NavLink to="/add/client" className={navLinkClassName} onClick={() => setSidebarOpen(false)}>
+            {iconAddClient}
+            <span>Add client</span>
+          </NavLink>
+          <NavLink to="/add/policy" className={navLinkClassName} onClick={() => setSidebarOpen(false)}>
+            {iconAddPolicy}
+            <span>Add policy</span>
+          </NavLink>
           <NavLink to="/sheet" className={navLinkClassName} onClick={() => setSidebarOpen(false)}>
             {iconCardTable}
             <span>Spreadsheet</span>
           </NavLink>
-          {isAdmin && (
-            <NavLink to="/data" className={navLinkClassName} onClick={() => setSidebarOpen(false)}>
-              {iconData}
-              <span>Data management</span>
-            </NavLink>
-          )}
-          {isAdmin && (
-            <NavLink to="/users" className={navLinkClassName} onClick={() => setSidebarOpen(false)}>
-              {iconUsers}
-              <span>User management</span>
-            </NavLink>
-          )}
+          <NavLink to="/data" className={navLinkClassName} onClick={() => setSidebarOpen(false)}>
+            {iconData}
+            <span>Data management</span>
+          </NavLink>
+          <NavLink to="/users" className={navLinkClassName} onClick={() => setSidebarOpen(false)}>
+            {iconUsers}
+            <span>User management</span>
+          </NavLink>
         </nav>
         <div style={{ padding: '16px', borderTop: '1px solid var(--border)' }}>
           <button
