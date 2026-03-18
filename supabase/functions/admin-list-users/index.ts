@@ -79,6 +79,7 @@ Deno.serve(async (req) => {
       created_at: u.created_at,
       role: (u.app_metadata?.role as string) || "user",
       banned_until: (u as { banned_until?: string | null }).banned_until ?? null,
+      ban_duration: (u as { ban_duration?: string | null }).ban_duration ?? null,
     }))
     return jsonResponse({ users, total: data.total }, 200)
   } catch (err) {

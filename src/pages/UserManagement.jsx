@@ -60,13 +60,13 @@ export default function UserManagement() {
   }
 
   const isBanned = (u) => {
+    const banDuration = u?.ban_duration
+    if (banDuration && banDuration !== 'none') return true
     const until = u.banned_until
     if (!until) return false
-    try {
-      return new Date(until) > new Date()
-    } catch {
-      return true
-    }
+    const d = new Date(until)
+    if (Number.isNaN(d.getTime())) return true
+    return d > new Date()
   }
 
   const getAccessStatus = (u) => {
@@ -75,10 +75,9 @@ export default function UserManagement() {
     if (!banned) return { key: 'active', label: 'Active', badge: 'active', hint: '' }
 
     let untilDate = null
-    try {
-      untilDate = untilRaw ? new Date(untilRaw) : null
-    } catch {
-      untilDate = null
+    if (untilRaw) {
+      const d = new Date(untilRaw)
+      untilDate = Number.isNaN(d.getTime()) ? null : d
     }
 
     // We use a very long ban duration ("876000h" ≈ 100 years) for deactivation.
