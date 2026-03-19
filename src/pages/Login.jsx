@@ -56,8 +56,9 @@ export default function Login() {
       fetch('http://127.0.0.1:7456/ingest/7373649d-10ac-4836-ba0c-cd604fef4eef',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'b81977'},body:JSON.stringify({sessionId:'b81977',location:'Login.jsx:auth-success',message:'Login success',data:{},timestamp:Date.now(),hypothesisId:'success'})}).catch(()=>{});
       // #endregion
       const { data } = await supabase.auth.getSession()
-      const role = data?.session?.user?.app_metadata?.role === 'admin' ? 'admin' : 'user'
-      navigate(role === 'admin' ? '/dashboard' : '/client', { replace: true })
+      const role = data?.session?.user?.app_metadata?.role
+      const isStaff = role === 'admin' || role === 'employee'
+      navigate(isStaff ? '/dashboard' : '/client', { replace: true })
     } finally {
       setLoading(false)
     }

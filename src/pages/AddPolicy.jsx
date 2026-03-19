@@ -22,7 +22,7 @@ function isFieldFilled(col, values, files, selectedClientName) {
 
 export default function AddPolicy() {
   const navigate = useNavigate()
-  const { isAdmin } = useAuth()
+  const { isStaff } = useAuth()
   const [clients, setClients] = useState([])
   const [selectedClientId, setSelectedClientId] = useState('')
   const [policyValues, setPolicyValues] = useState({})
@@ -58,10 +58,10 @@ export default function AddPolicy() {
   const setPolicyFile = (key, file) => setPolicyFiles((prev) => ({ ...prev, [key]: file }))
 
   useEffect(() => {
-    if (!isAdmin) navigate('/dashboard', { replace: true })
-  }, [isAdmin, navigate])
+    if (!isStaff) navigate('/dashboard', { replace: true })
+  }, [isStaff, navigate])
 
-  if (!isAdmin) return null
+  if (!isStaff) return null
 
   useEffect(() => {
     let mounted = true

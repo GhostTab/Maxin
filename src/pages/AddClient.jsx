@@ -20,7 +20,7 @@ function isFieldFilled(col, values, files) {
 
 export default function AddClient() {
   const navigate = useNavigate()
-  const { isAdmin } = useAuth()
+  const { isStaff } = useAuth()
   const [clientValues, setClientValues] = useState({})
   const [clientFiles, setClientFiles] = useState({})
   const [submitting, setSubmitting] = useState(false)
@@ -29,15 +29,15 @@ export default function AddClient() {
   const [accountWarning, setAccountWarning] = useState('')
 
   useEffect(() => {
-    if (!isAdmin) navigate('/dashboard', { replace: true })
-  }, [isAdmin, navigate])
+    if (!isStaff) navigate('/dashboard', { replace: true })
+  }, [isStaff, navigate])
 
   const setClient = (key, value) => setClientValues((prev) => ({ ...prev, [key]: value }))
   const setClientFile = (key, file) => setClientFiles((prev) => ({ ...prev, [key]: file }))
 
   const allClientFilled = clientCols.every((col) => isFieldFilled(col, clientValues, clientFiles))
 
-  if (!isAdmin) return null
+  if (!isStaff) return null
 
   async function handleSubmit(e) {
     e.preventDefault()

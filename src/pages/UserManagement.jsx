@@ -1,7 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { listUsers, updateUserBan } from '../lib/adminUsers'
+import { listUsers, updateUserBan, createEmployeeAccount } from '../lib/adminUsers'
+
+function roleLabel(role) {
+  const normalized = String(role || '').trim().toLowerCase()
+  if (normalized === 'admin') return 'Admin'
+  if (normalized === 'employee') return 'Employee'
+  return 'Client'
+}
 
 export default function UserManagement() {
   const navigate = useNavigate()
@@ -10,6 +17,12 @@ export default function UserManagement() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [actionLoadingId, setActionLoadingId] = useState(null)
+  const [createName, setCreateName] = useState('')
+  const [createEmail, setCreateEmail] = useState('')
+  const [createPassword, setCreatePassword] = useState('')
+  const [createLoading, setCreateLoading] = useState(false)
+  const [createError, setCreateError] = useState('')
+  const [createSuccess, setCreateSuccess] = useState(false)
 
   function loadUsers(silent = false) {
     if (!silent) setLoading(true)
@@ -56,6 +69,48 @@ export default function UserManagement() {
       setError(err.message || 'Failed to reactivate user')
     } finally {
       setActionLoadingId(null)
+    }
+  }
+
+  async function handleCreateEmployee(e) {
+    e.preventDefault()
+    setCreateError('')
+    setCreateSuccess(false)
+    const name = createName.trim()
+    const email = createEmail.trim()
+    const password = createPassword
+    if (!email || !password) {
+      setCreateError('Email and password are required.')
+      return
+    }
+    if (password.length < 6) {
+      setCreateError('Password must be at least 6 characters.')
+      return
+    }
+    setCreateLoading(true)
+    try {
+      await createEmployeeAccount(name || undefined, email, password)
+
+      // Verify role assignment right away by reloading the admin user list.
+      // If this still comes back as "Client", the backend edge function is likely not redeployed.
+      const res = await listUsers()
+      const created = (res.users || []).find((u) => String(u.email || '').toLowerCase() === email.toLowerCase())
+      const createdRole = String(created?.role || '').trim().toLowerCase()
+      if (createdRole !== 'employee') {
+        setCreateError('Employee role was not set on the server. Please redeploy/update the `admin-create-user` Edge Function and try again.')
+        setCreateSuccess(false)
+        return
+      }
+
+      setCreateSuccess(true)
+      setCreateName('')
+      setCreateEmail('')
+      setCreatePassword('')
+      await loadUsers(true)
+    } catch (err) {
+      setCreateError(err.message || 'Failed to create employee account.')
+    } finally {
+      setCreateLoading(false)
     }
   }
 
@@ -122,6 +177,63 @@ export default function UserManagement() {
         </div>
       )}
 
+      <div className="card" style={{ marginBottom: 24 }}>
+        <h2 className="card-title" style={{ marginBottom: 16 }}>Create Employee Account</h2>
+        <p style={{ marginBottom: 16, fontSize: 14, color: 'var(--text-secondary)' }}>
+          Only admins can create employee accounts. Role is set to Employee and cannot be changed by the employee.
+        </p>
+        <form onSubmit={handleCreateEmployee} className="page-content--form" style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 480 }}>
+          <div>
+            <label htmlFor="emp-name" className="form-label">Name</label>
+            <input
+              id="emp-name"
+              type="text"
+              className="input"
+              value={createName}
+              onChange={(e) => setCreateName(e.target.value)}
+              placeholder="Full name"
+              autoComplete="name"
+            />
+          </div>
+          <div>
+            <label htmlFor="emp-email" className="form-label">Email <span style={{ color: 'var(--danger, #dc2626)' }}>*</span></label>
+            <input
+              id="emp-email"
+              type="email"
+              className="input"
+              value={createEmail}
+              onChange={(e) => setCreateEmail(e.target.value)}
+              placeholder="employee@example.com"
+              required
+              autoComplete="email"
+            />
+          </div>
+          <div>
+            <label htmlFor="emp-password" className="form-label">Password <span style={{ color: 'var(--danger, #dc2626)' }}>*</span></label>
+            <input
+              id="emp-password"
+              type="password"
+              className="input"
+              value={createPassword}
+              onChange={(e) => setCreatePassword(e.target.value)}
+              placeholder="Min 6 characters"
+              required
+              minLength={6}
+              autoComplete="new-password"
+            />
+          </div>
+          <div>
+            <span className="form-label">Role</span>
+            <p style={{ margin: 0, fontSize: 14, color: 'var(--text-muted)' }}>Employee (pre-set)</p>
+          </div>
+          {createError && <div className="alert alert-error" style={{ margin: 0 }}>{createError}</div>}
+          {createSuccess && <div className="alert" style={{ margin: 0, background: 'var(--primary-bg)', color: 'var(--primary)' }}>Employee account created successfully.</div>}
+          <button type="submit" className="btn btn-primary" disabled={createLoading}>
+            {createLoading ? 'Creating…' : 'Create Employee Account'}
+          </button>
+        </form>
+      </div>
+
       <div className="card">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
           <h2 className="card-title" style={{ margin: 0 }}>Users</h2>
@@ -159,7 +271,7 @@ export default function UserManagement() {
                   return (
                     <tr key={u.id}>
                       <td>{u.email || '—'}</td>
-                      <td>{u.role === 'admin' ? 'Admin' : 'Client'}</td>
+                      <td>{roleLabel(u.role)}</td>
                       <td>
                         <span
                           className={`status-badge status-badge--${status.badge}`}

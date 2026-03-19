@@ -1,6 +1,10 @@
 /**
  * Single-file mode: one current document, up to 5 previous versions (commit history).
  * Works with or without the is_current column (fallback uses "latest by submitted_at" as current).
+ *
+ * RBAC: Callers must enforce role-based access. Only admin may perform deletes (clients/policies).
+ * Employee may view, add, and edit; delete operations must be guarded in the UI and in the
+ * handler before calling saveCurrent with reduced client_info/policy_info.
  */
 
 import { supabase } from './supabase'

@@ -574,7 +574,7 @@ function EditClientView({ client, clientIndex, policies, policyIndices, clientIn
 // ------------------------- DATA MANAGEMENT -------------------------
 export default function DataManagement() {
   const navigate = useNavigate()
-  const { isAdmin } = useAuth()
+  const { isStaff, canDeleteClients, canDeletePolicies } = useAuth()
   const [current, setCurrent] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -590,10 +590,10 @@ export default function DataManagement() {
   const [statusFilter, setStatusFilter] = useState('') // '' = All, or specific status
 
   useEffect(() => {
-    if (!isAdmin) navigate('/dashboard', { replace: true })
-  }, [isAdmin, navigate])
+    if (!isStaff) navigate('/dashboard', { replace: true })
+  }, [isStaff, navigate])
 
-  if (!isAdmin) return null
+  if (!isStaff) return null
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -634,6 +634,7 @@ export default function DataManagement() {
   }
 
   const deleteClientsAndLinkedPolicies = async (clientIndicesToDelete) => {
+    if (!canDeleteClients) return
     const namesToRemove = new Set(
       clientInfo.filter((_, i) => clientIndicesToDelete.has(i)).map((c) => (c.col_1 || '').trim()).filter(Boolean)
     )
@@ -648,6 +649,7 @@ export default function DataManagement() {
   }
 
   const handleDeleteOneClient = async (realIndex) => {
+    if (!canDeleteClients) return
     if (!window.confirm('Are you sure you want to delete this client? This will also remove their linked policies.')) return
     setDeleting(true)
     setError('')
@@ -667,6 +669,7 @@ export default function DataManagement() {
   }
 
   const handleDeleteOnePolicy = async (realIndex) => {
+    if (!canDeletePolicies) return
     if (!window.confirm('Are you sure you want to delete this policy?')) return
     setDeleting(true)
     setError('')
@@ -687,7 +690,7 @@ export default function DataManagement() {
   }
 
   const handleDeleteSelectedClients = async () => {
-    if (selectedClientIndices.size === 0) return
+    if (!canDeleteClients || selectedClientIndices.size === 0) return
     if (!window.confirm(`Are you sure you want to delete ${selectedClientIndices.size} selected client(s)? This will also remove their linked policies.`)) return
     setDeleting(true)
     setError('')
@@ -703,7 +706,7 @@ export default function DataManagement() {
   }
 
   const handleDeleteSelectedPolicies = async () => {
-    if (selectedPolicyIndices.size === 0) return
+    if (!canDeletePolicies || selectedPolicyIndices.size === 0) return
     if (!window.confirm(`Are you sure you want to delete ${selectedPolicyIndices.size} selected policy(ies)?`)) return
     setDeleting(true)
     setError('')
@@ -874,7 +877,7 @@ return (
             <option key={opt} value={opt}>{opt}</option>
           ))}
         </select>
-        {activeSection === 'client' && selectedClientIndices.size > 0 && (
+        {canDeleteClients && activeSection === 'client' && selectedClientIndices.size > 0 && (
           <button
             type="button"
             onClick={handleDeleteSelectedClients}
@@ -885,7 +888,7 @@ return (
             <IconTrash size={16} /> Delete selected ({selectedClientIndices.size})
           </button>
         )}
-        {activeSection === 'policy' && selectedPolicyIndices.size > 0 && (
+        {canDeletePolicies && activeSection === 'policy' && selectedPolicyIndices.size > 0 && (
           <button
             type="button"
             onClick={handleDeleteSelectedPolicies}
@@ -1014,14 +1017,16 @@ return (
                   >
                     Edit
                   </button>
-                  <button
-                    type="button"
-                    className="btn btn-danger"
-                    onClick={() => handleDeleteOneClient(realIndex)}
-                    disabled={deleting}
-                  >
-                    Delete
-                  </button>
+                  {canDeleteClients && (
+                    <button
+                      type="button"
+                      className="btn btn-danger"
+                      onClick={() => handleDeleteOneClient(realIndex)}
+                      disabled={deleting}
+                    >
+                      Delete
+                    </button>
+                  )}
                 </div>
               </div>
             )
@@ -1081,14 +1086,16 @@ return (
                     >
                       Edit
                     </button>
-                    <button
-                      type="button"
-                      className="btn btn-danger"
-                      onClick={() => handleDeleteOneClient(realIndex)}
-                      disabled={deleting}
-                    >
-                      Delete
-                    </button>
+                    {canDeleteClients && (
+                      <button
+                        type="button"
+                        className="btn btn-danger"
+                        onClick={() => handleDeleteOneClient(realIndex)}
+                        disabled={deleting}
+                      >
+                        Delete
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1156,14 +1163,16 @@ return (
                   >
                     View
                   </button>
-                  <button
-                    type="button"
-                    className="btn btn-danger"
-                    onClick={() => handleDeleteOnePolicy(realIndex)}
-                    disabled={deleting}
-                  >
-                    Delete
-                  </button>
+                  {canDeletePolicies && (
+                    <button
+                      type="button"
+                      className="btn btn-danger"
+                      onClick={() => handleDeleteOnePolicy(realIndex)}
+                      disabled={deleting}
+                    >
+                      Delete
+                    </button>
+                  )}
                 </div>
               </div>
             )
@@ -1218,14 +1227,16 @@ return (
                     >
                       View
                     </button>
-                    <button
-                      type="button"
-                      className="btn btn-danger"
-                      onClick={() => handleDeleteOnePolicy(realIndex)}
-                      disabled={deleting}
-                    >
-                      Delete
-                    </button>
+                    {canDeletePolicies && (
+                      <button
+                        type="button"
+                        className="btn btn-danger"
+                        onClick={() => handleDeleteOnePolicy(realIndex)}
+                        disabled={deleting}
+                      >
+                        Delete
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

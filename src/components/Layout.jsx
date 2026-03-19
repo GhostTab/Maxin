@@ -66,7 +66,7 @@ export default function Layout() {
   const navigate = useNavigate()
   const [logoError, setLogoError] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const { isAdmin } = useAuth()
+  const { isStaff, canAccessUserManagement } = useAuth()
   const { hasUnsavedChanges } = useUnsaved()
 
   async function handleLogout() {
@@ -81,7 +81,7 @@ export default function Layout() {
     `sidebar-nav-link${isActive ? ' active' : ''}`
 
   /* Client UI: no sidebar, just header with logo + logout */
-  if (!isAdmin) {
+  if (!isStaff) {
     return (
       <div className="app-shell app-shell--client">
         <main className="app-main">
@@ -193,10 +193,12 @@ export default function Layout() {
             {iconData}
             <span>Data management</span>
           </NavLink>
-          <NavLink to="/users" className={navLinkClassName} onClick={() => setSidebarOpen(false)}>
-            {iconUsers}
-            <span>User management</span>
-          </NavLink>
+          {canAccessUserManagement && (
+            <NavLink to="/users" className={navLinkClassName} onClick={() => setSidebarOpen(false)}>
+              {iconUsers}
+              <span>User management</span>
+            </NavLink>
+          )}
         </nav>
         <div style={{ padding: '16px', borderTop: '1px solid var(--border)' }}>
           <button

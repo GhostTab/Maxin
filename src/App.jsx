@@ -21,17 +21,25 @@ function ProtectedRoute({ children }) {
 }
 
 function IndexRedirect() {
-  const { loading, session, isAdmin } = useAuth()
+  const { loading, session, isStaff } = useAuth()
   if (loading) return <div style={{ padding: 24, textAlign: 'center' }}>Loading...</div>
   if (!session) return <Navigate to="/login" replace />
-  return <Navigate to={isAdmin ? '/dashboard' : '/client'} replace />
+  return <Navigate to={isStaff ? '/dashboard' : '/client'} replace />
 }
 
-function AdminRoute({ children }) {
-  const { loading, session, isAdmin } = useAuth()
+function StaffRoute({ children }) {
+  const { loading, session, isStaff } = useAuth()
   if (loading) return <div style={{ padding: 24, textAlign: 'center' }}>Loading...</div>
   if (!session) return <Navigate to="/login" replace />
-  if (!isAdmin) return <Navigate to="/client" replace />
+  if (!isStaff) return <Navigate to={session ? '/client' : '/login'} replace />
+  return children
+}
+
+function AdminOnlyRoute({ children }) {
+  const { loading, session, canAccessUserManagement } = useAuth()
+  if (loading) return <div style={{ padding: 24, textAlign: 'center' }}>Loading...</div>
+  if (!session) return <Navigate to="/login" replace />
+  if (!canAccessUserManagement) return <Navigate to="/dashboard" replace />
   return children
 }
 
@@ -61,57 +69,57 @@ export default function App() {
           <Route
             path="dashboard"
             element={
-              <AdminRoute>
+              <StaffRoute>
                 <Dashboard />
-              </AdminRoute>
+              </StaffRoute>
             }
           />
           <Route
             path="sheet"
             element={
-              <AdminRoute>
+              <StaffRoute>
                 <Spreadsheet />
-              </AdminRoute>
+              </StaffRoute>
             }
           />
           <Route
             path="add/client"
             element={
-              <AdminRoute>
+              <StaffRoute>
                 <AddClient />
-              </AdminRoute>
+              </StaffRoute>
             }
           />
           <Route
             path="add/policy"
             element={
-              <AdminRoute>
+              <StaffRoute>
                 <AddPolicy />
-              </AdminRoute>
+              </StaffRoute>
             }
           />
           <Route
             path="add"
             element={
-              <AdminRoute>
+              <StaffRoute>
                 <Navigate to="/add/client" replace />
-              </AdminRoute>
+              </StaffRoute>
             }
           />
           <Route
             path="data"
             element={
-              <AdminRoute>
+              <StaffRoute>
                 <DataManagement />
-              </AdminRoute>
+              </StaffRoute>
             }
           />
           <Route
             path="users"
             element={
-              <AdminRoute>
+              <AdminOnlyRoute>
                 <UserManagement />
-              </AdminRoute>
+              </AdminOnlyRoute>
             }
           />
         </Route>

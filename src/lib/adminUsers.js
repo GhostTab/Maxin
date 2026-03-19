@@ -34,15 +34,21 @@ async function getAuthHeaders() {
   }
 }
 
-export async function createUser(email, password) {
+export async function createUser(email, password, options = {}) {
   if (!supabase) throw new Error('Supabase not configured')
   const url = getFunctionsUrl()
   if (!url) throw new Error('VITE_SUPABASE_URL not set')
   const headers = await getAuthHeaders()
+  const body = {
+    email: typeof email === 'string' ? email.trim() : '',
+    password: typeof password === 'string' ? password : '',
+  }
+  if (options.role) body.role = options.role
+  if (options.name) body.name = options.name
   const res = await fetch(`${url}/${FUNCTIONS.createUser}`, {
     method: 'POST',
     headers,
-    body: JSON.stringify({ email: email.trim(), password }),
+    body: JSON.stringify(body),
   })
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
@@ -53,6 +59,11 @@ export async function createUser(email, password) {
     throw new Error(msg)
   }
   return data
+}
+
+/** Create an employee account (Admin only). Role is enforced server-side. */
+export async function createEmployeeAccount(name, email, password) {
+  return createUser(email, password, { role: 'employee', name: name || undefined })
 }
 
 export async function createClientAccountAndEmail(email, clientName) {

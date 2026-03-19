@@ -9,7 +9,7 @@ import { SHEET_NAMES } from '../config/spreadsheetColumns'
 import { exportCurrentToExcel } from '../lib/exportExcel'
 
 export default function Spreadsheet() {
-  const { user, isAdmin } = useAuth()
+  const { user, isStaff } = useAuth()
   const [activeTab, setActiveTab] = useState(SHEET_NAMES[0])
   const [currentData, setCurrentData] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -21,13 +21,13 @@ export default function Spreadsheet() {
       .then((current) => {
         if (!mounted) return
         const raw = current?.data || null
-        const toSet = raw && !isAdmin ? filterDataByClientEmail(raw, user?.email) : raw
+        const toSet = raw && !isStaff ? filterDataByClientEmail(raw, user?.email) : raw
         setCurrentData(toSet)
       })
       .catch(() => setCurrentData(null))
       .finally(() => { if (mounted) setLoading(false) })
     return () => { mounted = false }
-  }, [isAdmin, user?.email])
+  }, [isStaff, user?.email])
 
   const clientInfo = currentData?.client_info ?? []
   const policyInfo = currentData?.policy_info ?? []
@@ -36,7 +36,7 @@ export default function Spreadsheet() {
     setDownloading(true)
     try {
       const raw = await getCurrentSubmission()
-      const payload = !isAdmin
+      const payload = !isStaff
         ? { ...raw, data: filterDataByClientEmail(raw?.data || {}, user?.email) }
         : raw
       await exportCurrentToExcel(payload)

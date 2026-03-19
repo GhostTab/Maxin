@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Admin only" }, 403)
     }
 
-    let body: { email?: string; password?: string }
+    let body: { email?: string; password?: string; role?: string; name?: string }
     try {
       body = await req.json()
     } catch {
@@ -61,20 +61,24 @@ Deno.serve(async (req) => {
     }
     const email = typeof body.email === "string" ? body.email.trim() : ""
     const password = typeof body.password === "string" ? body.password : ""
+    const roleParam = typeof body.role === "string" ? body.role.trim().toLowerCase() : "user"
+    const name = typeof body.name === "string" ? body.name.trim() : ""
     if (!email || !password) {
       return jsonResponse({ error: "email and password are required" }, 400)
     }
     if (password.length < 6) {
       return jsonResponse({ error: "Password must be at least 6 characters" }, 400)
     }
+    const allowedRoles = ["user", "employee"]
+    const appRole = allowedRoles.includes(roleParam) ? roleParam : "user"
 
     const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
     const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
-      user_metadata: {},
-      app_metadata: { role: "user" },
+      user_metadata: name ? { full_name: name } : {},
+      app_metadata: { role: appRole },
     })
 
     if (createError) {

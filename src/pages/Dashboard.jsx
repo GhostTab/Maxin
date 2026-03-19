@@ -84,7 +84,7 @@ function parseNum(val) {
 
 export default function Dashboard() {
   const navigate = useNavigate()
-  const { user, isAdmin } = useAuth()
+  const { user, isStaff, isAdmin } = useAuth()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [data, setData] = useState(null)
@@ -95,7 +95,7 @@ export default function Dashboard() {
       .then((current) => {
         if (!mounted) return
         const raw = current?.data || { client_info: [], policy_info: [] }
-        const toSet = isAdmin ? raw : filterDataByClientEmail(raw, user?.email)
+        const toSet = isStaff ? raw : filterDataByClientEmail(raw, user?.email)
         setData(toSet)
       })
       .catch((err) => {
@@ -106,7 +106,7 @@ export default function Dashboard() {
         if (mounted) setLoading(false)
       })
     return () => { mounted = false }
-  }, [isAdmin, user?.email])
+  }, [isStaff, user?.email])
 
   const reports = useMemo(() => {
     const clientInfo = Array.isArray(data?.client_info) ? data.client_info : []
@@ -165,7 +165,7 @@ export default function Dashboard() {
           <h1 className="page-heading">Dashboard</h1>
           <p className="page-description">Summary and reports from your client and policy data.</p>
         </div>
-        {isAdmin && (
+        {isStaff && (
           <div className="dashboard-header-actions">
             <button
               type="button"

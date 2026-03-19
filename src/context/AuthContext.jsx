@@ -23,10 +23,28 @@ export function AuthProvider({ children }) {
   }, [])
 
   const user = session?.user ?? null
-  const role = user?.app_metadata?.role === 'admin' ? 'admin' : 'user'
+  const rawRole = user?.app_metadata?.role
+  const normalizedRole = String(rawRole || '').trim().toLowerCase()
+  const role = normalizedRole === 'admin' ? 'admin' : normalizedRole === 'employee' ? 'employee' : 'user'
   const isAdmin = role === 'admin'
+  const isEmployee = role === 'employee'
+  const isStaff = isAdmin || isEmployee
+  const canAccessUserManagement = isAdmin
+  const canDeleteClients = isAdmin
+  const canDeletePolicies = isAdmin
 
-  const value = { session, user, role, isAdmin, loading }
+  const value = {
+    session,
+    user,
+    role,
+    isAdmin,
+    isEmployee,
+    isStaff,
+    canAccessUserManagement,
+    canDeleteClients,
+    canDeletePolicies,
+    loading,
+  }
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
