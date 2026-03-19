@@ -30,21 +30,12 @@ export default function Login() {
     }
 
     try {
-      // #region agent log
       const trimmedEmail = email.trim()
-      fetch('http://127.0.0.1:7456/ingest/7373649d-10ac-4836-ba0c-cd604fef4eef',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'b81977'},body:JSON.stringify({sessionId:'b81977',location:'Login.jsx:pre-signIn',message:'Login attempt',data:{supabaseOk:!!supabase,emailLen:trimmedEmail.length,passwordLen:password.length},timestamp:Date.now(),hypothesisId:'H3_H4'})}).catch(()=>{});
-      // #endregion
       const { error: err } = await supabase.auth.signInWithPassword({
         email: trimmedEmail,
         password
       })
 
-      // #region agent log
-      if (err) {
-        try { sessionStorage.setItem('debug_login_error_b81977', JSON.stringify({ message: err.message, status: err.status, name: err.name })) } catch (_) {}
-        fetch('http://127.0.0.1:7456/ingest/7373649d-10ac-4836-ba0c-cd604fef4eef',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'b81977'},body:JSON.stringify({sessionId:'b81977',location:'Login.jsx:auth-error',message:'Supabase auth error',data:{errMessage:err.message,errStatus:err.status,name:err.name},timestamp:Date.now(),hypothesisId:'H1_H2_H5'})}).catch(()=>{});
-      }
-      // #endregion
       if (err) {
         const isEmailNotConfirmed = /email not confirmed|email_not_confirmed/i.test(err.message) || err.code === 'email_not_confirmed'
         if (isEmailNotConfirmed) setEmailNotConfirmed(true)
@@ -52,9 +43,6 @@ export default function Login() {
         return
       }
 
-      // #region agent log
-      fetch('http://127.0.0.1:7456/ingest/7373649d-10ac-4836-ba0c-cd604fef4eef',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'b81977'},body:JSON.stringify({sessionId:'b81977',location:'Login.jsx:auth-success',message:'Login success',data:{},timestamp:Date.now(),hypothesisId:'success'})}).catch(()=>{});
-      // #endregion
       const { data } = await supabase.auth.getSession()
       const role = data?.session?.user?.app_metadata?.role
       const isStaff = role === 'admin' || role === 'employee'

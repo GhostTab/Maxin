@@ -12,14 +12,32 @@ export function AuthProvider({ children }) {
       setLoading(false)
       return
     }
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
-      setSession(s)
-      setLoading(false)
-    })
+    let mounted = true
+    ;(async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession()
+        if (error) {
+          const msg = String(error.message || '').toLowerCase()
+          const isRefreshTokenError = msg.includes('invalid refresh token') || msg.includes('refresh token not found')
+          if (isRefreshTokenError) {
+            await supabase.auth.signOut()
+          }
+        }
+        if (mounted) setSession(data?.session ?? null)
+      } catch {
+        if (mounted) setSession(null)
+      } finally {
+        if (mounted) setLoading(false)
+      }
+    })()
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s)
     })
-    return () => subscription?.unsubscribe()
+    return () => {
+      mounted = false
+      subscription?.unsubscribe()
+    }
   }, [])
 
   const user = session?.user ?? null
