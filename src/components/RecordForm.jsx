@@ -120,6 +120,16 @@ const fieldStyle = { marginBottom: 16 }
 export const formSectionTitleStyle = { margin: '0 0 20px', fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '0.01em' }
 export const formSectionGridStyle = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0 24px' }
 
+function sanitizeInputValue(col, value) {
+  if (value == null) return ''
+  let next = String(value)
+  if (col.numericOnly) {
+    // Strict numeric-only mode for fields like TIN, contact no, and ZIP code.
+    next = next.replace(/\D+/g, '')
+  }
+  return next
+}
+
 export function FormSection({ title, columns, values, onChange, uploadFieldKeys = [], files, onFileChange, insideCard }) {
   const sectionContent = (
     <>
@@ -167,10 +177,12 @@ export function FormSection({ title, columns, values, onChange, uploadFieldKeys 
                   className="input"
                   style={{ ...inputStyle, ...(col.readOnly ? { backgroundColor: 'var(--input-readonly-bg, #f1f5f9)', cursor: 'default' } : {}) }}
                   value={values[col.data] ?? ''}
-                  onChange={(e) => onChange(col.data, e.target.value)}
+                  onChange={(e) => onChange(col.data, sanitizeInputValue(col, e.target.value))}
                   placeholder={getPlaceholder(col)}
                   min={col.inputType === 'number' ? '0' : undefined}
                   step={col.inputType === 'number' ? 'any' : undefined}
+                  inputMode={col.numericOnly ? 'numeric' : undefined}
+                  pattern={col.numericOnly ? '[0-9]*' : undefined}
                   readOnly={col.readOnly}
                 />
               )}

@@ -11,6 +11,7 @@ const FUNCTIONS = {
   listUsers: 'admin-list-users',
   createClientAccountAndEmail: 'create-client-account-and-email',
   updateUserBan: 'admin-update-user',
+  deleteUser: 'admin-delete-user',
 }
 
 function getFunctionsUrl() {
@@ -99,6 +100,27 @@ export async function updateUserBan(userId, banDuration) {
     method: 'POST',
     headers,
     body: JSON.stringify({ userId: String(userId).trim(), ban_duration: banDuration }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    const msg = data?.error || data?.message || `Request failed (${res.status})`
+    if (res.status === 401) {
+      throw new Error(`${msg} Log out and log back in if you were just set as admin.`)
+    }
+    throw new Error(msg)
+  }
+  return data
+}
+
+export async function deleteUserAccount(userId) {
+  if (!supabase) throw new Error('Supabase not configured')
+  const url = getFunctionsUrl()
+  if (!url) throw new Error('VITE_SUPABASE_URL not set')
+  const headers = await getAuthHeaders()
+  const res = await fetch(`${url}/${FUNCTIONS.deleteUser}`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ userId: String(userId).trim() }),
   })
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {

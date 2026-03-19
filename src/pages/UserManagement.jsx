@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { listUsers, updateUserBan, createEmployeeAccount } from '../lib/adminUsers'
+import { listUsers, updateUserBan, createEmployeeAccount, deleteUserAccount } from '../lib/adminUsers'
 
 function roleLabel(role) {
   const normalized = String(role || '').trim().toLowerCase()
@@ -67,6 +67,20 @@ export default function UserManagement() {
       await loadUsers(true)
     } catch (err) {
       setError(err.message || 'Failed to reactivate user')
+    } finally {
+      setActionLoadingId(null)
+    }
+  }
+
+  async function handleDeleteAccount(userId, email) {
+    if (!window.confirm(`Delete account ${email || 'this user'}? This cannot be undone.`)) return
+    setActionLoadingId(userId)
+    try {
+      await deleteUserAccount(userId)
+      setError('')
+      await loadUsers(true)
+    } catch (err) {
+      setError(err.message || 'Failed to delete account')
     } finally {
       setActionLoadingId(null)
     }
@@ -166,7 +180,7 @@ export default function UserManagement() {
         <div>
           <h1 className="page-heading">User management</h1>
           <p className="page-description">
-            Client accounts are created automatically when you add a client in Add Client. This page is for viewing users and deactivating or reactivating access. Deleting users is disabled to keep client records linked; use Deactivate to block access.
+            Client accounts are created automatically when you add a client in Add Client. This page is for viewing users, creating employee accounts, and controlling access. Deactivate blocks login; Delete permanently removes a non-admin account.
           </p>
         </div>
       </div>
@@ -286,27 +300,38 @@ export default function UserManagement() {
                       </td>
                       <td>
                         {!isCurrentUser && u.role !== 'admin' && (
-                          status.key !== 'active' ? (
-                            <button
-                              type="button"
-                              className="btn btn-secondary"
-                              disabled={actionLoadingId === u.id}
-                              onClick={() => handleReactivate(u.id)}
-                              aria-label={`Reactivate ${u.email || 'user'}`}
-                            >
-                              {actionLoadingId === u.id ? 'Reactivating…' : 'Reactivate'}
-                            </button>
-                          ) : (
+                          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                            {status.key !== 'active' ? (
+                              <button
+                                type="button"
+                                className="btn btn-secondary"
+                                disabled={actionLoadingId === u.id}
+                                onClick={() => handleReactivate(u.id)}
+                                aria-label={`Reactivate ${u.email || 'user'}`}
+                              >
+                                {actionLoadingId === u.id ? 'Reactivating…' : 'Reactivate'}
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                className="btn btn-danger"
+                                disabled={actionLoadingId === u.id}
+                                onClick={() => handleDeactivate(u.id)}
+                                aria-label={`Deactivate ${u.email || 'user'}`}
+                              >
+                                {actionLoadingId === u.id ? 'Deactivating…' : 'Deactivate'}
+                              </button>
+                            )}
                             <button
                               type="button"
                               className="btn btn-danger"
                               disabled={actionLoadingId === u.id}
-                              onClick={() => handleDeactivate(u.id)}
-                              aria-label={`Deactivate ${u.email || 'user'}`}
+                              onClick={() => handleDeleteAccount(u.id, u.email)}
+                              aria-label={`Delete ${u.email || 'user'}`}
                             >
-                              {actionLoadingId === u.id ? 'Deactivating…' : 'Deactivate'}
+                              {actionLoadingId === u.id ? 'Deleting…' : 'Delete'}
                             </button>
-                          )
+                          </div>
                         )}
                       </td>
                     </tr>

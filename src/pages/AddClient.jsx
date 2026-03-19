@@ -9,6 +9,7 @@ import { SPREADSHEET_COLUMNS, UPLOAD_FIELD_KEYS } from '../config/spreadsheetCol
 import { FormWithSections } from '../components/RecordForm'
 
 const clientCols = SPREADSHEET_COLUMNS.Client_Info
+const OPTIONAL_CLIENT_FIELDS = new Set(['col_3', 'col_5']) // Middle Name, Suffix
 
 function isFieldFilled(col, values, files) {
   if (UPLOAD_FIELD_KEYS.Client_Info.includes(col.data)) {
@@ -35,7 +36,9 @@ export default function AddClient() {
   const setClient = (key, value) => setClientValues((prev) => ({ ...prev, [key]: value }))
   const setClientFile = (key, file) => setClientFiles((prev) => ({ ...prev, [key]: file }))
 
-  const allClientFilled = clientCols.every((col) => isFieldFilled(col, clientValues, clientFiles))
+  const allClientFilled = clientCols
+    .filter((col) => !OPTIONAL_CLIENT_FIELDS.has(col.data))
+    .every((col) => isFieldFilled(col, clientValues, clientFiles))
 
   if (!isStaff) return null
 
