@@ -190,7 +190,7 @@ export default function ClientHome() {
         <div className="client-hero-main">
           <p className="client-hero-eyebrow">Client portal</p>
           <h1 className="client-hero-title">Welcome, {displayName}</h1>
-          <p className="client-hero-description">Track your profile and policies in one clean workspace.</p>
+          <p className="client-hero-description">Track your profile and policies.</p>
         </div>
         <div className="client-hero-pills">
           <span className="client-hero-pill">{stats.totalPolicies} policy{stats.totalPolicies === 1 ? '' : 'ies'}</span>
