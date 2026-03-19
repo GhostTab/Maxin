@@ -64,6 +64,13 @@ function IconChevron({ size = 18, open }) {
 
 function PolicyCard({ policy, expanded, onToggle, detailsId }) {
   const status = (policy?.col_9 || '—').trim() || '—'
+  const normalizedStatus = status.toLowerCase()
+  const statusClass =
+    normalizedStatus === 'active'
+      ? 'client-policy-badge--active'
+      : normalizedStatus === 'expired' || normalizedStatus === 'inactive' || normalizedStatus === 'cancelled'
+        ? 'client-policy-badge--inactive'
+        : 'client-policy-badge--neutral'
   const policyNum = policy?.col_3 || 'Policy'
   const provider = policy?.col_4 || '—'
   const line = policy?.col_5 || ''
@@ -85,7 +92,7 @@ function PolicyCard({ policy, expanded, onToggle, detailsId }) {
           </div>
         </div>
         <div className="client-policy-summary-right">
-          <span className="client-policy-badge">{status}</span>
+          <span className={`client-policy-badge ${statusClass}`}>{status}</span>
           <span className="client-policy-expiry">{expiry}</span>
         </div>
       </button>
@@ -151,6 +158,18 @@ export default function ClientHome() {
     return rows
   }, [data])
 
+  const stats = useMemo(() => {
+    const totalPolicies = myPolicies.length
+    const activePolicies = myPolicies.filter((p) => String(p?.col_9 || '').trim().toLowerCase() === 'active').length
+    const grossPremiumTotal = myPolicies.reduce((sum, p) => {
+      const n = parseFloat(String(p?.col_11 || '').replace(/,/g, ''))
+      return sum + (Number.isFinite(n) ? n : 0)
+    }, 0)
+    return { totalPolicies, activePolicies, grossPremiumTotal }
+  }, [myPolicies])
+
+  const displayName = (myClient?.col_2 || myClient?.col_1 || user?.email || 'Client').toString()
+
   if (loading) {
     return (
       <div className="page-content">
@@ -167,14 +186,36 @@ export default function ClientHome() {
 
   return (
     <div className="page-content">
-      <div className="page-header" style={{ marginBottom: 18 }}>
-        <div>
-          <h1 className="page-heading">My portal</h1>
-          <p className="page-description">Your profile and policies.</p>
+      <div className="client-hero" style={{ marginBottom: 18 }}>
+        <div className="client-hero-main">
+          <p className="client-hero-eyebrow">Client portal</p>
+          <h1 className="client-hero-title">Welcome, {displayName}</h1>
+          <p className="client-hero-description">Track your profile and policies in one clean workspace.</p>
+        </div>
+        <div className="client-hero-pills">
+          <span className="client-hero-pill">{stats.totalPolicies} policy{stats.totalPolicies === 1 ? '' : 'ies'}</span>
+          <span className="client-hero-pill">{stats.activePolicies} active</span>
         </div>
       </div>
 
       {error && <div className="alert alert-error" style={{ marginBottom: 16 }}>{error}</div>}
+
+      <div className="client-kpis" style={{ marginBottom: 16 }}>
+        <div className="client-kpi-card card">
+          <span className="client-kpi-label">Total policies</span>
+          <span className="client-kpi-value">{stats.totalPolicies}</span>
+        </div>
+        <div className="client-kpi-card card">
+          <span className="client-kpi-label">Active policies</span>
+          <span className="client-kpi-value">{stats.activePolicies}</span>
+        </div>
+        <div className="client-kpi-card card">
+          <span className="client-kpi-label">Gross premium</span>
+          <span className="client-kpi-value">
+            {stats.grossPremiumTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+          </span>
+        </div>
+      </div>
 
       <div className="client-grid">
         <Section icon={IconUser} title="My profile">
